@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"syscall"
 
 	"github.com/axiomhq/axiom-go/axiom"
@@ -23,7 +22,7 @@ var (
 	extensionName = filepath.Base(os.Args[0])
 
 	// API Port
-	logsPort = 8080
+	logsPort = "8080"
 
 	// Buffering Config
 	defaultMaxItems  = 1000
@@ -58,7 +57,7 @@ func main() {
 		s := <-sigs
 		cancel()
 		logger.Info("Received", zap.Any("Signal", s))
-		logger.Sync()
+		_ = logger.Sync()
 		logger.Fatal("Exiting")
 	}()
 
@@ -88,7 +87,7 @@ func Run(ctx context.Context) error {
 
 		_, err := extensionClient.Register(ctx, extensionName)
 		if err != nil {
-			logger.Fatal("Registration Failed", zap.Error(err))
+			return err
 		}
 
 		// LOGS API SUBSCRIPTION
@@ -96,7 +95,7 @@ func Run(ctx context.Context) error {
 
 		destination := logsapi.Destination{
 			Protocol:   "HTTP",
-			URI:        logsapi.URI(fmt.Sprintf("http://sandbox.localdomain:%s/", strconv.Itoa(logsPort))),
+			URI:        logsapi.URI(fmt.Sprintf("http://sandbox.localdomain:%s/", logsPort)),
 			HttpMethod: "POST",
 			Encoding:   "JSON",
 		}
@@ -109,9 +108,9 @@ func Run(ctx context.Context) error {
 
 		res, err := logsClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
 		if err != nil {
-			logger.Fatal("Subscription Failed", zap.Error(err))
+			return err
 		}
-		logger.Info("Subscription Result", zap.Any("Result ", res))
+		logger.Info("Subscription Result", zap.Any("subscription", res))
 	}
 
 	axClient, _ := axiom.NewClient(
@@ -130,7 +129,6 @@ func Run(ctx context.Context) error {
 				nextEventResponse, err := extensionClient.NextEvent(ctx, extensionName)
 				if err != nil {
 					logger.Error("Next event Failed:", zap.Error(err))
-					logger.Fatal("Exiting")
 					return err
 				}
 				logger.Info("Next Event Info", zap.Any("stats", nextEventResponse))

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -79,7 +79,7 @@ func New(LogsAPI string) *Client {
 	}
 }
 
-func (lc *Client) Subscribe(ctx context.Context, types []string, bufferingCfg BufferingCfg, destination Destination, extensionId string) (*SubscribeResponse, error) {
+func (lc *Client) Subscribe(ctx context.Context, types []string, bufferingCfg BufferingCfg, destination Destination, extensionID string) (*SubscribeResponse, error) {
 	subscribeEndpoint := lc.baseURL + "/logs"
 
 	subReq, err := json.Marshal(
@@ -99,14 +99,14 @@ func (lc *Client) Subscribe(ctx context.Context, types []string, bufferingCfg Bu
 		return nil, err
 	}
 
-	httpReq.Header.Set(lambdaAgentIdentifierHeaderKey, extensionId)
+	httpReq.Header.Set(lambdaAgentIdentifierHeaderKey, extensionID)
 	httpRes, err := lc.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
 
 	defer httpRes.Body.Close()
-	body, err := ioutil.ReadAll(httpRes.Body)
+	body, err := io.ReadAll(httpRes.Body)
 	if err != nil {
 		return nil, err
 	}

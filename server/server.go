@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -17,10 +17,10 @@ type Server struct {
 	axiomDataset string
 }
 
-func New(port int, axClient *axiom.Client, axDataset string) *Server {
+func New(port string, axClient *axiom.Client, axDataset string) *Server {
 	return &Server{
 		httpServer: &http.Server{
-			Addr: fmt.Sprintf(":%s", string(port)),
+			Addr: fmt.Sprintf(":%s", port),
 		},
 		axiomClient:  axClient,
 		axiomDataset: axDataset,
@@ -32,20 +32,16 @@ func (s *Server) Start() {
 }
 
 func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return
 	}
-
-	fmt.Println("received Logs:", string(body))
 
 	var events []axiom.Event
 	err = json.Unmarshal(body, &events)
 	if err != nil {
-		fmt.Println("marshalling failed", err)
 		return
 	}
-	fmt.Println(events)
 
 	res, err := s.axiomClient.Datasets.IngestEvents(context.Background(), s.axiomDataset, axiom.IngestOptions{}, events...)
 	if err != nil {

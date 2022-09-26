@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -39,7 +39,6 @@ type NextEventResponse struct {
 const (
 	extensionNameHeader      = "Lambda-Extension-Name"
 	extensionIdentiferHeader = "Lambda-Extension-Identifier"
-	extensionErrorType       = "Lambda-Extension-Function-Error-Type"
 )
 
 func New(LogsAPI string) *Client {
@@ -75,7 +74,7 @@ func (c *Client) Register(ctx context.Context, extensionName string) (*RegisterR
 	}
 
 	defer httpRes.Body.Close()
-	body, err := ioutil.ReadAll(httpRes.Body)
+	body, err := io.ReadAll(httpRes.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +107,7 @@ func (c *Client) NextEvent(ctx context.Context, extensionName string) (*NextEven
 	if httpRes.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Next Event Failed with status %s", httpRes.Status)
 	}
-	body, err := ioutil.ReadAll(httpRes.Body)
+	body, err := io.ReadAll(httpRes.Body)
 	if err != nil {
 		return nil, err
 	}
