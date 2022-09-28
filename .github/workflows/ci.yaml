@@ -54,4 +54,3 @@ jobs:
       - name: Publish The lambda layer to ${{ matrix.region }} region
         run: |
           aws lambda publish-layer-version --layer-name axiom-lambda-extension --region ${{ matrix.region }} --zip-file "fileb://bin/extension.zip"
-      
