@@ -43,6 +43,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ matrix.region }}
       - name: Package the binary
         run: make package
       - name: Publish The lambda layer to ${{ matrix.region }} region
