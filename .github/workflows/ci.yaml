@@ -27,12 +27,17 @@ jobs:
     needs:
       - lint
     runs-on: ubuntu-latest
-    # if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     strategy:
       matrix:
+        # Lambda Layer must be in the region as the lambda function using it.
+        # That's why we need to publsih to multiple AWS regions
         region:
           - eu-west-1
+          - eu-west-2
+          - eu-central-1
           - us-east-1
+          - us-east-2
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
