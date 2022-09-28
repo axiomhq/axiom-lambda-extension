@@ -63,7 +63,7 @@ func (c *Client) Register(ctx context.Context, extensionName string) (*RegisterR
 		return nil, err
 	}
 	httpReq.Header.Set(extensionNameHeader, extensionName)
-	fmt.Printf("Next Register ID %+v\n:", httpReq)
+
 	httpRes, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, err

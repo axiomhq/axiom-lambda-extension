@@ -10,11 +10,12 @@ import (
 	"syscall"
 
 	"github.com/axiomhq/axiom-go/axiom"
+	"github.com/peterbourgon/ff/v2/ffcli"
+	"go.uber.org/zap"
+
 	"github.com/axiomhq/axiom-lambda-extension/extension"
 	"github.com/axiomhq/axiom-lambda-extension/logsapi"
 	"github.com/axiomhq/axiom-lambda-extension/server"
-	"github.com/peterbourgon/ff/v2/ffcli"
-	"go.uber.org/zap"
 )
 
 var (
@@ -58,12 +59,12 @@ func main() {
 		cancel()
 		logger.Info("Received", zap.Any("Signal", s))
 		_ = logger.Sync()
-		logger.Fatal("Exiting")
+		logger.Info("Exiting")
 	}()
 
 	rootCmd := &ffcli.Command{
 		ShortUsage: "axiom-lambda-extension [flags]",
-		ShortHelp:  "run axiom-lambda-extension", //TODO
+		ShortHelp:  "run axiom-lambda-extension",
 		FlagSet:    flag.NewFlagSet("axiom-lambda-extension", flag.ExitOnError),
 		Exec: func(ctx context.Context, args []string) error {
 			return Run(ctx)
@@ -110,7 +111,7 @@ func Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		logger.Info("Subscription Result", zap.Any("subscription", res))
+		logger.Info("Subscription Result:", zap.Any("subscription", res))
 	}
 
 	axClient, _ := axiom.NewClient(
@@ -131,7 +132,7 @@ func Run(ctx context.Context) error {
 					logger.Error("Next event Failed:", zap.Error(err))
 					return err
 				}
-				logger.Info("Next Event Info", zap.Any("stats", nextEventResponse))
+				logger.Info("Next Event Info:", zap.Any("stats", nextEventResponse))
 			}
 		}
 	}

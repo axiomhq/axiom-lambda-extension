@@ -6,15 +6,23 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/axiomhq/axiom-go/axiom"
+	"go.uber.org/zap"
 )
 
 type Server struct {
 	httpServer   *http.Server
 	axiomClient  *axiom.Client
 	axiomDataset string
+}
+
+var (
+	logger *zap.Logger
+)
+
+func init() {
+	logger, _ = zap.NewProduction()
 }
 
 func New(port string, axClient *axiom.Client, axDataset string) *Server {
@@ -45,20 +53,7 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 
 	res, err := s.axiomClient.Datasets.IngestEvents(context.Background(), s.axiomDataset, axiom.IngestOptions{}, events...)
 	if err != nil {
-		fmt.Println("Ingestion failed", err)
+		logger.Error("Ingesting Events to Axiom Failed:", zap.Error(err))
 	}
-	fmt.Println("res", res)
-}
-
-func (s *Server) Shutdown() {
-	if s.httpServer != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		err := s.httpServer.Shutdown(ctx)
-		defer cancel()
-		if err != nil {
-			fmt.Errorf("Failed to shutdown http server gracefully %s", err)
-		} else {
-			s.httpServer = nil
-		}
-	}
+	logger.Info("Ingesting Events to Axiom Succeeded:", zap.Any("response", res))
 }
