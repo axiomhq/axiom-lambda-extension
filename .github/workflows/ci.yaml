@@ -44,8 +44,8 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: Package the binary
-        runs: make package
+        run: make package
       - name: Publish The lambda layer to ${{ matrix.region }} region
-        runs: |
+        run: |
           aws lambda publish-layer-version --layer-name axiom-lambda-extension --region ${{ matrix.region }} --zip-file "fileb://bin/extension.zip"
       
