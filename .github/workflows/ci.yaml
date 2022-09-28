@@ -27,11 +27,12 @@ jobs:
     needs:
       - lint
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # if: github.ref == 'refs/heads/main'
     strategy:
       matrics:
         region:
           - eu-west-1
+          - us-east-1
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
@@ -42,6 +43,9 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      - runs: |
-          aws lambda publish-layer-version --layer-name axiom-lambda-extension --region ${{matrix.region}} --zip-file "fileb://bin/extension.zip"
+      - name: Package the binary
+        runs: make package
+      - name: Publish The lambda layer to ${{ matrix.region }} region
+        runs: |
+          aws lambda publish-layer-version --layer-name axiom-lambda-extension --region ${{ matrix.region }} --zip-file "fileb://bin/extension.zip"
       
