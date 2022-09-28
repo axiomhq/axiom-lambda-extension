@@ -37,12 +37,14 @@ func New(port string, axClient *axiom.Client, axDataset string) *Server {
 
 func (s *Server) Start() {
 	http.HandleFunc("/", s.httpHandler)
+
+	_ = s.httpServer.ListenAndServe()
 }
 
 func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return
+		logger.Info("Error reading body:", zap.Error(err))
 	}
 
 	var events []axiom.Event
@@ -53,7 +55,7 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 
 	res, err := s.axiomClient.Datasets.IngestEvents(context.Background(), s.axiomDataset, axiom.IngestOptions{}, events...)
 	if err != nil {
-		logger.Error("Ingesting Events to Axiom Failed:", zap.Error(err))
+		logger.Info("Ingesting Events to Axiom Failed:", zap.Error(err))
 	}
 	logger.Info("Ingesting Events to Axiom Succeeded:", zap.Any("response", res))
 }

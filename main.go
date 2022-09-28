@@ -48,20 +48,6 @@ func main() {
 		axiomURL = "https://cloud.axiom.co"
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
-	sigs := make(chan os.Signal, 1)
-	defer close(sigs)
-	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
-
-	go func() {
-		s := <-sigs
-		cancel()
-		logger.Info("Received", zap.Any("Signal", s))
-		_ = logger.Sync()
-		logger.Info("Exiting")
-	}()
-
 	rootCmd := &ffcli.Command{
 		ShortUsage: "axiom-lambda-extension [flags]",
 		ShortHelp:  "run axiom-lambda-extension",
@@ -73,14 +59,30 @@ func main() {
 
 	rootCmd.FlagSet.BoolVar(&developmentMode, "development-mode", false, "Set development Mode")
 
-	// rootCmd.Execute()
-	if err := rootCmd.ParseAndRun(ctx, os.Args[1:]); err != nil && err != flag.ErrHelp {
+	if err := rootCmd.ParseAndRun(context.Background(), os.Args[1:]); err != nil && err != flag.ErrHelp {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
 func Run(ctx context.Context) error {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGINT)
+
+	axClient, err := axiom.NewClient(
+		axiom.SetURL(axiomURL),
+		axiom.SetAccessToken(axiomToken),
+	)
+	if err != nil {
+		return err
+	}
+
+	httpServer := server.New(logsPort, axClient, axiomDataset)
+	go httpServer.Start()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	var extensionClient *extension.Client
 	if !developmentMode {
 		// Extension API REGISTRATION
@@ -114,17 +116,15 @@ func Run(ctx context.Context) error {
 		logger.Info("Subscription Result:", zap.Any("subscription", res))
 	}
 
-	axClient, _ := axiom.NewClient(
-		axiom.SetURL(axiomURL),
-		axiom.SetAccessToken(axiomToken),
-	)
-	server := server.New(logsPort, axClient, axiomDataset)
-	server.Start()
-
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
+		case s := <-sigs:
+			cancel()
+			logger.Info("Received", zap.Any("Signal", s))
+			_ = logger.Sync()
+			logger.Error("Exiting")
 		default:
 			if !developmentMode {
 				nextEventResponse, err := extensionClient.NextEvent(ctx, extensionName)
