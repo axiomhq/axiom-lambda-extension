@@ -1,0 +1,44 @@
+run:
+  modules-download-mode: readonly
+  skip-dirs:
+    - .git
+    - .github
+    - .vscode
+    - bin
+    - man
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - exportloopref
+    - goconst
+    - gofmt
+    - goimports
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nolintlint
+    - prealloc
+    - staticcheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+
+linters-settings:
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/axiomhq/axiom-lambda-extension
+  govet:
+    check-shadowing: true
+
+issues:
+  exclude-rules:
+    - text: "G112:"
+      linters:
+        - gosec
