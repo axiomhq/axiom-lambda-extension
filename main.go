@@ -45,7 +45,7 @@ func init() {
 
 func main() {
 	if axiomURL == "" {
-		axiomURL = "https://cloud.axiom.co"
+		axiomURL = "https://api.axiom.co"
 	}
 
 	rootCmd := &ffcli.Command{
@@ -71,7 +71,7 @@ func Run(ctx context.Context) error {
 
 	axClient, err := axiom.NewClient(
 		axiom.SetURL(axiomURL),
-		axiom.SetAccessToken(axiomToken),
+		axiom.SetAPITokenConfig(axiomToken),
 	)
 	if err != nil {
 		return err
