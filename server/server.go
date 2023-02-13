@@ -64,7 +64,7 @@ func (s *Server) Start() {
 		"region":             AWS_REGION,
 		"name":               AWS_LAMBDA_FUNCTION_NAME,
 		"memorySizeMB":       AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
-		"version":            AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
+		"version":            AWS_LAMBDA_FUNCTION_VERSION,
 	}
 }
 
