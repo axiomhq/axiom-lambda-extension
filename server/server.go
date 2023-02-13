@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/axiomhq/axiom-go/axiom"
-	version "github.com/axiomhq/axiom-lambda-extension/version"
+	"github.com/axiomhq/axiom-lambda-extension/version"
 	"go.uber.org/zap"
 )
 

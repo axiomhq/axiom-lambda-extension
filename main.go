@@ -16,6 +16,7 @@ import (
 	"github.com/axiomhq/axiom-lambda-extension/extension"
 	"github.com/axiomhq/axiom-lambda-extension/logsapi"
 	"github.com/axiomhq/axiom-lambda-extension/server"
+	"github.com/axiomhq/axiom-lambda-extension/version"
 )
 
 var (
@@ -73,6 +74,7 @@ func Run(ctx context.Context) error {
 	axClient, err := axiom.NewClient(
 		axiom.SetURL(axiomURL),
 		axiom.SetAPITokenConfig(axiomToken),
+		axiom.SetUserAgent(fmt.Sprintf("axiom-lambda-extension/%s", version.Get())),
 	)
 	if err != nil {
 		return err
