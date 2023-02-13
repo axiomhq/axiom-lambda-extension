@@ -32,7 +32,6 @@ var (
 	defaultTimeoutMS = 1000
 
 	// Axiom Config
-	axiomURL     = os.Getenv("AXIOM_URL")
 	axiomToken   = os.Getenv("AXIOM_TOKEN")
 	axiomDataset = os.Getenv("AXIOM_DATASET")
 
@@ -45,10 +44,6 @@ func init() {
 }
 
 func main() {
-	if axiomURL == "" {
-		axiomURL = "https://api.axiom.co"
-	}
-
 	rootCmd := &ffcli.Command{
 		ShortUsage: "axiom-lambda-extension [flags]",
 		ShortHelp:  "run axiom-lambda-extension",
@@ -72,7 +67,6 @@ func Run(ctx context.Context) error {
 	signal.Notify(sigs, os.Interrupt, syscall.SIGINT)
 
 	axClient, err := axiom.NewClient(
-		axiom.SetURL(axiomURL),
 		axiom.SetAPITokenConfig(axiomToken),
 		axiom.SetUserAgent(fmt.Sprintf("axiom-lambda-extension/%s", version.Get())),
 	)
