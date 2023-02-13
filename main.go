@@ -16,6 +16,7 @@ import (
 	"github.com/axiomhq/axiom-lambda-extension/extension"
 	"github.com/axiomhq/axiom-lambda-extension/logsapi"
 	"github.com/axiomhq/axiom-lambda-extension/server"
+	"github.com/axiomhq/axiom-lambda-extension/version"
 )
 
 var (
@@ -31,7 +32,6 @@ var (
 	defaultTimeoutMS = 1000
 
 	// Axiom Config
-	axiomURL     = os.Getenv("AXIOM_URL")
 	axiomToken   = os.Getenv("AXIOM_TOKEN")
 	axiomDataset = os.Getenv("AXIOM_DATASET")
 
@@ -44,10 +44,6 @@ func init() {
 }
 
 func main() {
-	if axiomURL == "" {
-		axiomURL = "https://cloud.axiom.co"
-	}
-
 	rootCmd := &ffcli.Command{
 		ShortUsage: "axiom-lambda-extension [flags]",
 		ShortHelp:  "run axiom-lambda-extension",
@@ -61,7 +57,8 @@ func main() {
 
 	if err := rootCmd.ParseAndRun(context.Background(), os.Args[1:]); err != nil && err != flag.ErrHelp {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		// TODO: we don't exist here so that we don't kill the lambda
+		// os.Exit(1)
 	}
 }
 
@@ -70,8 +67,8 @@ func Run(ctx context.Context) error {
 	signal.Notify(sigs, os.Interrupt, syscall.SIGINT)
 
 	axClient, err := axiom.NewClient(
-		axiom.SetURL(axiomURL),
-		axiom.SetAccessToken(axiomToken),
+		axiom.SetAPITokenConfig(axiomToken),
+		axiom.SetUserAgent(fmt.Sprintf("axiom-lambda-extension/%s", version.Get())),
 	)
 	if err != nil {
 		return err
@@ -109,11 +106,10 @@ func Run(ctx context.Context) error {
 			TimeoutMS: uint32(defaultTimeoutMS),
 		}
 
-		res, err := logsClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
+		_, err = logsClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
 		if err != nil {
 			return err
 		}
-		logger.Info("Subscription Result:", zap.Any("subscription", res))
 	}
 
 	for {
@@ -127,12 +123,11 @@ func Run(ctx context.Context) error {
 			logger.Error("Exiting")
 		default:
 			if !developmentMode {
-				nextEventResponse, err := extensionClient.NextEvent(ctx, extensionName)
+				_, err := extensionClient.NextEvent(ctx, extensionName)
 				if err != nil {
 					logger.Error("Next event Failed:", zap.Error(err))
 					return err
 				}
-				logger.Info("Next Event Info:", zap.Any("stats", nextEventResponse))
 			}
 		}
 	}

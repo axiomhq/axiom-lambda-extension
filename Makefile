@@ -1,5 +1,4 @@
 GOOS=linux
-GOARCH=amd64
 
 build:
 	mkdir -p bin/extensions
@@ -9,7 +8,7 @@ package: build
 	cd bin && zip -r extension.zip extensions
 
 publish: package
-	aws lambda publish-layer-version --layer-name axiom-development-lambda-extension --region eu-west-1 --zip-file "fileb://bin/extension.zip"
+	aws lambda publish-layer-version --layer-name axiom-development-lambda-extension-go --region eu-west-1 --zip-file "fileb://bin/extension.zip"
 
 clean:
 	rm -r ./bin
