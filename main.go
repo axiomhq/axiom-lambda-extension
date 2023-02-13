@@ -61,7 +61,8 @@ func main() {
 
 	if err := rootCmd.ParseAndRun(context.Background(), os.Args[1:]); err != nil && err != flag.ErrHelp {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		// TODO: we don't exist here so that we don't kill the lambda
+		// os.Exit(1)
 	}
 }
 
@@ -109,11 +110,10 @@ func Run(ctx context.Context) error {
 			TimeoutMS: uint32(defaultTimeoutMS),
 		}
 
-		res, err := logsClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
+		_, err = logsClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
 		if err != nil {
 			return err
 		}
-		logger.Info("Subscription Result:", zap.Any("subscription", res))
 	}
 
 	for {
@@ -127,12 +127,11 @@ func Run(ctx context.Context) error {
 			logger.Error("Exiting")
 		default:
 			if !developmentMode {
-				nextEventResponse, err := extensionClient.NextEvent(ctx, extensionName)
+				_, err := extensionClient.NextEvent(ctx, extensionName)
 				if err != nil {
 					logger.Error("Next event Failed:", zap.Error(err))
 					return err
 				}
-				logger.Info("Next Event Info:", zap.Any("stats", nextEventResponse))
 			}
 		}
 	}

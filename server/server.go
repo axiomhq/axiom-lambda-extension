@@ -53,10 +53,9 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := s.axiomClient.Datasets.IngestEvents(r.Context(), s.axiomDataset, events)
+	_, err = s.axiomClient.IngestEvents(r.Context(), s.axiomDataset, events)
 	if err != nil {
 		logger.Error("Ingesting Events to Axiom Failed:", zap.Error(err))
 		return
 	}
-	logger.Info("Ingesting Events to Axiom Succeeded:", zap.Any("response", res))
 }
