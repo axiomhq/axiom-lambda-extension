@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/axiomhq/axiom-go/axiom"
+	version "github.com/axiomhq/axiom-lambda-extension/version"
 	"go.uber.org/zap"
 )
 
@@ -71,8 +72,13 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 		"version":            AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
 	}
 
+	extVersion := map[string]string{
+		"awsLambdaExtensionVersion": version.Get(),
+	}
+
 	for _, e := range events {
 		e["lambda"] = lambdaInfo
+		e["axiom"] = extVersion
 	}
 
 	_, err = s.axiomClient.IngestEvents(r.Context(), s.axiomDataset, events)
