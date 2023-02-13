@@ -24,17 +24,25 @@ var (
 
 // lambda environment variables
 var (
-	AWS_LAMBDA_FUNCTION_NAME                  = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
-	AWS_REGION                                = os.Getenv("AWS_REGION")
-	AWS_LAMBDA_FUNCTION_VERSION               = os.Getenv("AWS_LAMBDA_FUNCTION_VERSION")
-	AWS_LAMBDA_INITIALIZATION_TYPE            = os.Getenv("AWS_LAMBDA_INITIALIZATION_TYPE")
-	AWS_LAMBDA_FUNCTION_MEMORY_SIZE_STR       = os.Getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE")
-	AWS_LAMBDA_FUNCTION_MEMORY_SIZE     int64 = 0 // parse the memory size string in the Start method
-	lambdaMetaInfo                            = map[string]any{}
+	AWS_LAMBDA_FUNCTION_NAME           = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
+	AWS_REGION                         = os.Getenv("AWS_REGION")
+	AWS_LAMBDA_FUNCTION_VERSION        = os.Getenv("AWS_LAMBDA_FUNCTION_VERSION")
+	AWS_LAMBDA_INITIALIZATION_TYPE     = os.Getenv("AWS_LAMBDA_INITIALIZATION_TYPE")
+	AWS_LAMBDA_FUNCTION_MEMORY_SIZE, _ = strconv.ParseInt(os.Getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE"), 10, 32)
+	lambdaMetaInfo                     = map[string]any{}
 )
 
 func init() {
 	logger, _ = zap.NewProduction()
+
+	// initialize the lambdaMetaInfo map
+	lambdaMetaInfo = map[string]any{
+		"initializationType": AWS_LAMBDA_INITIALIZATION_TYPE,
+		"region":             AWS_REGION,
+		"name":               AWS_LAMBDA_FUNCTION_NAME,
+		"memorySizeMB":       AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
+		"version":            AWS_LAMBDA_FUNCTION_VERSION,
+	}
 }
 
 func New(port string, axClient *axiom.Client, axDataset string) *Server {
@@ -51,21 +59,6 @@ func (s *Server) Start() {
 	http.HandleFunc("/", s.httpHandler)
 
 	_ = s.httpServer.ListenAndServe()
-	memSize, err := strconv.ParseInt(AWS_LAMBDA_FUNCTION_MEMORY_SIZE_STR, 10, 64)
-	if err != nil {
-		logger.Warn("Failed to parse lambda memory size", zap.Error(err))
-	} else {
-		AWS_LAMBDA_FUNCTION_MEMORY_SIZE = memSize
-	}
-
-	// initialize the lambdaMetaInfo map
-	lambdaMetaInfo = map[string]any{
-		"initializationType": AWS_LAMBDA_INITIALIZATION_TYPE,
-		"region":             AWS_REGION,
-		"name":               AWS_LAMBDA_FUNCTION_NAME,
-		"memorySizeMB":       AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
-		"version":            AWS_LAMBDA_FUNCTION_VERSION,
-	}
 }
 
 func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +71,7 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 	var events []axiom.Event
 	err = json.Unmarshal(body, &events)
 	if err != nil {
+		logger.Error("Error unmarshalling body:", zap.Error(err))
 		return
 	}
 
