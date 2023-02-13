@@ -1,5 +1,9 @@
 name: CI
 
+permissions:
+  id-token: write
+  contents: read
+
 on:
   pull_request:
     branches:
@@ -7,6 +11,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
 
 env:
   GOVERSION: "1.18"
@@ -22,20 +28,37 @@ jobs:
           go-version: ${{ env.GOVERSION }}
       - uses: golangci/golangci-lint-action@v3
 
-  publish:
-    name: Publish Axiom Lambda Extension
+  build:
+    name: Build
+    runs-on: ubuntu-latest
     needs:
       - lint
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     strategy:
       matrix:
-        # Lambda Layer must be in the region as the lambda function using it.
-        # That's why we need to publsih to multiple AWS regions
-        region:
+        architecture:
+          - amd64
+          - arm64
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GOVERSION }}
+      - name: build the binary ${{ matrix.architecture }}
+        run: GOARCH=${{ matrix.architecture }} make build
+
+  publish:
+    name: Publish ${{ matrix.architecture }} binary in ${{ matrix.region }} in Development AWS Account
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'axiomhq' && github.ref == 'refs/heads/main'
+    needs:
+      - build
+    strategy:
+      matrix:
+        architecture:
+          - amd64
+          - arm64
+        region: # TODO: Add all regions where Lambda is available
           - eu-west-1
-          - eu-west-2
-          - eu-central-1
           - us-east-1
           - us-east-2
     steps:
@@ -43,14 +66,99 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GOVERSION }}
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ matrix.region }}
       - name: Package the binary
-        run: make package
-      - name: Publish The lambda layer to ${{ matrix.region }} region
+        run: GOARCH=${{ matrix.architecture }} make package
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_DEV_IAM_ROLE }}
+          role-session-name: lambda_extension
+          aws-region: ${{ matrix.region }}
+      - name: Publish Lambda ${{ matrix.architecture }} layer to ${{ matrix.region }}
         run: |
-          aws lambda publish-layer-version --layer-name axiom-lambda-extension --region ${{ matrix.region }} --zip-file "fileb://bin/extension.zip"
+          ARCH=${{ matrix.architecture }}
+          if [[ $ARCH == "amd64" ]]; then
+            ARCH=x86_64
+          fi
+
+          # Publish Lambda layer
+          LAYER_VERSION=$(aws lambda publish-layer-version \
+            --layer-name axiom-lambda-extension-$ARCH \
+            --region ${{ matrix.region }} \
+            --description 'axiom lambda extension to push lambda logs to https://axiom.co' \
+            --compatible-architectures $ARCH \
+            --zip-file "fileb://bin/extension.zip" --output json | jq .Version)
+
+          # THIS make the lambda layer only accessible by the Axiom AWS organization
+          aws lambda add-layer-version-permission \
+            --layer-name axiom-lambda-extension-$ARCH \
+            --version-number $LAYER_VERSION \
+            --statement-id axiomOrg \
+            --principal '*' \
+            --organization-id ${{ secrets.AWS_ORGANIZATION_ID }} \
+            --region ${{ matrix.region }} \
+            --action lambda:GetLayerVersion
+
+  publish_to_production:
+    name: Publish ${{ matrix.architecture }} binary in ${{ matrix.region }} in Production AWS Account
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'axiomhq' && startsWith(github.ref, 'refs/tags') # Only on tags
+    needs:
+      - build
+    strategy:
+      matrix:
+        architecture:
+          - amd64
+          - arm64
+        region:
+          - us-west-1
+          - us-west-2
+          - us-east-1
+          - us-east-2
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-north-1
+          - eu-central-1
+          - ca-central-1
+          - sa-east-1
+          - ap-south-1
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GOVERSION }}
+      - name: Package the binary
+        run: GOARCH=${{ matrix.architecture }} make package
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_PROD_IAM_ROLE }}
+          role-session-name: lambda_extension
+          aws-region: ${{ matrix.region }}
+      - name: Publish Lambda ${{ matrix.architecture }} layer to ${{ matrix.region }}
+        run: |
+          ARCH=${{ matrix.architecture }}
+          if [[ $ARCH == "aarch64" ]]; then
+            ARCH=arm64
+          fi
+
+          # Publish Lambda layer
+          LAYER_VERSION=$(aws lambda publish-layer-version \
+            --layer-name axiom-lambda-extension-$ARCH \
+            --region ${{ matrix.region }} \
+            --description 'axiom lambda extension to push lambda logs to https://axiom.co' \
+            --compatible-architectures $ARCH \
+            --zip-file "fileb://extension.zip" --output json | jq .Version)
+
+          # THIS makes the lambda layer public
+          aws lambda add-layer-version-permission \
+            --layer-name axiom-lambda-extension-$ARCH \
+            --version-number $LAYER_VERSION \
+            --statement-id allOrgs \
+            --principal '*' \
+            --region ${{ matrix.region }} \
+            --action lambda:GetLayerVersion
