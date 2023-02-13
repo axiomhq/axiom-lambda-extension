@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -54,7 +53,7 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := s.axiomClient.Datasets.IngestEvents(context.Background(), s.axiomDataset, events)
+	res, err := s.axiomClient.Datasets.IngestEvents(r.Context(), s.axiomDataset, events)
 	if err != nil {
 		logger.Error("Ingesting Events to Axiom Failed:", zap.Error(err))
 		return
