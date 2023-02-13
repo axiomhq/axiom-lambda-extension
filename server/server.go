@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/axiomhq/axiom-go/axiom"
-	"github.com/axiomhq/axiom-lambda-extension/version"
 	"go.uber.org/zap"
 )
 
@@ -31,6 +30,7 @@ var (
 	AWS_LAMBDA_INITIALIZATION_TYPE            = os.Getenv("AWS_LAMBDA_INITIALIZATION_TYPE")
 	AWS_LAMBDA_FUNCTION_MEMORY_SIZE_STR       = os.Getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE")
 	AWS_LAMBDA_FUNCTION_MEMORY_SIZE     int64 = 0 // parse the memory size string in the Start method
+	lambdaMetaInfo                            = map[string]any{}
 )
 
 func init() {
@@ -57,6 +57,15 @@ func (s *Server) Start() {
 	} else {
 		AWS_LAMBDA_FUNCTION_MEMORY_SIZE = memSize
 	}
+
+	// initialize the lambdaMetaInfo map
+	lambdaMetaInfo = map[string]any{
+		"initializationType": AWS_LAMBDA_INITIALIZATION_TYPE,
+		"region":             AWS_REGION,
+		"name":               AWS_LAMBDA_FUNCTION_NAME,
+		"memorySizeMB":       AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
+		"version":            AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
+	}
 }
 
 func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
@@ -72,21 +81,9 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lambdaInfo := map[string]any{
-		"initializationType": AWS_LAMBDA_INITIALIZATION_TYPE,
-		"region":             AWS_REGION,
-		"name":               AWS_LAMBDA_FUNCTION_NAME,
-		"memorySizeMB":       AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
-		"version":            AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
-	}
-
-	extVersion := map[string]string{
-		"awsLambdaExtensionVersion": version.Get(),
-	}
-
 	for _, e := range events {
-		e["lambda"] = lambdaInfo
-		e["axiom"] = extVersion
+		// attach the lambda information to the event
+		e["lambda"] = lambdaMetaInfo
 		// replace the time field with axiom's _time
 		e["_time"], e["time"] = e["time"], nil
 	}
