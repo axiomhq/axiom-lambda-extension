@@ -153,7 +153,7 @@ jobs:
             --region ${{ matrix.region }} \
             --description 'axiom lambda extension to push lambda logs to https://axiom.co' \
             --compatible-architectures $ARCH \
-            --zip-file "fileb://extension.zip" --output json | jq .Version)
+            --zip-file "fileb://bin/extension.zip" --output json | jq .Version)
 
           # THIS makes the lambda layer public
           aws lambda add-layer-version-permission \
