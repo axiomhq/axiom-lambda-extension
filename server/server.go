@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/axiomhq/axiom-go/axiom"
 	"github.com/axiomhq/axiom-lambda-extension/version"
@@ -24,11 +25,12 @@ var (
 
 // lambda environment variables
 var (
-	AWS_LAMBDA_FUNCTION_NAME        = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
-	AWS_REGION                      = os.Getenv("AWS_REGION")
-	AWS_LAMBDA_FUNCTION_VERSION     = os.Getenv("AWS_LAMBDA_FUNCTION_VERSION")
-	AWS_LAMBDA_INITIALIZATION_TYPE  = os.Getenv("AWS_LAMBDA_INITIALIZATION_TYPE")
-	AWS_LAMBDA_FUNCTION_MEMORY_SIZE = os.Getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE")
+	AWS_LAMBDA_FUNCTION_NAME                  = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
+	AWS_REGION                                = os.Getenv("AWS_REGION")
+	AWS_LAMBDA_FUNCTION_VERSION               = os.Getenv("AWS_LAMBDA_FUNCTION_VERSION")
+	AWS_LAMBDA_INITIALIZATION_TYPE            = os.Getenv("AWS_LAMBDA_INITIALIZATION_TYPE")
+	AWS_LAMBDA_FUNCTION_MEMORY_SIZE_STR       = os.Getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE")
+	AWS_LAMBDA_FUNCTION_MEMORY_SIZE     int64 = 0 // parse the memory size string in the Start method
 )
 
 func init() {
@@ -49,6 +51,12 @@ func (s *Server) Start() {
 	http.HandleFunc("/", s.httpHandler)
 
 	_ = s.httpServer.ListenAndServe()
+	memSize, err := strconv.ParseInt(AWS_LAMBDA_FUNCTION_MEMORY_SIZE_STR, 10, 64)
+	if err != nil {
+		logger.Warn("Failed to parse lambda memory size", zap.Error(err))
+	} else {
+		AWS_LAMBDA_FUNCTION_MEMORY_SIZE = memSize
+	}
 }
 
 func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
