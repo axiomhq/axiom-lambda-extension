@@ -7,7 +7,7 @@ var version string
 func init() {
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, dep := range info.Deps {
-			if dep.Path == "github.com/axiomhq/axiom-go" {
+			if dep.Path == "github.com/axiomhq/axiom-lambda-extension" {
 				version = dep.Version
 				break
 			}
