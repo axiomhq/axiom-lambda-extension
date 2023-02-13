@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/axiomhq/axiom-go/axiom"
 	"go.uber.org/zap"
@@ -18,6 +19,15 @@ type Server struct {
 
 var (
 	logger *zap.Logger
+)
+
+// lambda environment variables
+var (
+	AWS_LAMBDA_FUNCTION_NAME        = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
+	AWS_REGION                      = os.Getenv("AWS_REGION")
+	AWS_LAMBDA_FUNCTION_VERSION     = os.Getenv("AWS_LAMBDA_FUNCTION_VERSION")
+	AWS_LAMBDA_INITIALIZATION_TYPE  = os.Getenv("AWS_LAMBDA_INITIALIZATION_TYPE")
+	AWS_LAMBDA_FUNCTION_MEMORY_SIZE = os.Getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE")
 )
 
 func init() {
@@ -51,6 +61,18 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &events)
 	if err != nil {
 		return
+	}
+
+	lambdaInfo := map[string]string{
+		"initializationType": AWS_LAMBDA_INITIALIZATION_TYPE,
+		"region":             AWS_REGION,
+		"name":               AWS_LAMBDA_FUNCTION_NAME,
+		"memorySizeMB":       AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
+		"version":            AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
+	}
+
+	for _, e := range events {
+		e["lambda"] = lambdaInfo
 	}
 
 	_, err = s.axiomClient.IngestEvents(r.Context(), s.axiomDataset, events)
