@@ -1,19 +1,7 @@
 package version
 
-import "runtime/debug"
-
-var version string
-
-func init() {
-	if info, ok := debug.ReadBuildInfo(); ok {
-		for _, dep := range info.Deps {
-			if dep.Path == "github.com/axiomhq/axiom-lambda-extension" {
-				version = dep.Version
-				break
-			}
-		}
-	}
-}
+// manually set constant version
+const version string = "v1"
 
 // Get returns the Go module version of the axiom-go module.
 func Get() string {
