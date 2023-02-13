@@ -64,7 +64,7 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lambdaInfo := map[string]string{
+	lambdaInfo := map[string]any{
 		"initializationType": AWS_LAMBDA_INITIALIZATION_TYPE,
 		"region":             AWS_REGION,
 		"name":               AWS_LAMBDA_FUNCTION_NAME,
@@ -79,6 +79,8 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 	for _, e := range events {
 		e["lambda"] = lambdaInfo
 		e["axiom"] = extVersion
+		// replace the time field with axiom's _time
+		e["_time"], e["time"] = e["time"], nil
 	}
 
 	_, err = s.axiomClient.IngestEvents(r.Context(), s.axiomDataset, events)
