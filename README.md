@@ -16,7 +16,7 @@
   digest for you and your team. Dashboards can be kept private or shared with
   others, and are the perfect way to bring together data from different sources.
 
-For more information check out the [official documentation](https://axiom.co/docs)
+For more information, check out the [official documentation](https://axiom.co/docs)
 and our [community Discord](https://axiom.co/discord).
 
 
