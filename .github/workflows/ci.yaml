@@ -73,7 +73,12 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEV_IAM_ROLE }}
           role-session-name: lambda_extension
           aws-region: ${{ matrix.region }}
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
       - name: Publish Lambda ${{ matrix.architecture }} layer to ${{ matrix.region }}
+        env:
+          LAYER_VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
           ARCH=${{ matrix.architecture }}
           if [[ $ARCH == "amd64" ]]; then
@@ -82,7 +87,7 @@ jobs:
 
           # Publish Lambda layer
           LAYER_VERSION=$(aws lambda publish-layer-version \
-            --layer-name axiom-lambda-extension-$ARCH \
+            --layer-name axiom-lambda-extension-$ARCH-$LAYER_VERSION \
             --region ${{ matrix.region }} \
             --description 'axiom lambda extension to push lambda logs to https://axiom.co' \
             --compatible-architectures $ARCH \
@@ -90,7 +95,7 @@ jobs:
 
           # THIS make the lambda layer only accessible by the Axiom AWS organization
           aws lambda add-layer-version-permission \
-            --layer-name axiom-lambda-extension-$ARCH \
+            --layer-name axiom-lambda-extension-$ARCH-$LAYER_VERSION \
             --version-number $LAYER_VERSION \
             --statement-id axiomOrg \
             --principal '*' \
