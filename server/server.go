@@ -9,8 +9,9 @@ import (
 	"strconv"
 
 	"github.com/axiomhq/axiom-go/axiom"
-	"github.com/axiomhq/axiom-lambda-extension/version"
 	"go.uber.org/zap"
+
+	"github.com/axiomhq/axiom-lambda-extension/version"
 )
 
 type Server struct {
