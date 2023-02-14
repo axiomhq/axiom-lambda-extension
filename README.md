@@ -129,6 +129,6 @@ Double check that the API token has permission to ingest into the dataset. If th
 
 ## License
 
-&copy; Axiom, Inc., 2022
+&copy; Axiom, Inc., 2023
 
 Distributed under MIT License (`The MIT License`).
