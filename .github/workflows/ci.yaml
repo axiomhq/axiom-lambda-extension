@@ -82,7 +82,7 @@ jobs:
 
           # Publish Lambda layer
           LAYER_VERSION=$(aws lambda publish-layer-version \
-            --layer-name axiom-lambda-extension-$ARCH \
+            --layer-name axiom-extension-$ARCH \
             --region ${{ matrix.region }} \
             --description 'axiom lambda extension to push lambda logs to https://axiom.co' \
             --compatible-architectures $ARCH \
@@ -90,7 +90,7 @@ jobs:
 
           # THIS make the lambda layer only accessible by the Axiom AWS organization
           aws lambda add-layer-version-permission \
-            --layer-name axiom-lambda-extension-$ARCH \
+            --layer-name axiom-extension-$ARCH \
             --version-number $LAYER_VERSION \
             --statement-id axiomOrg \
             --principal '*' \
@@ -149,7 +149,7 @@ jobs:
 
           # Publish Lambda layer
           LAYER_VERSION=$(aws lambda publish-layer-version \
-            --layer-name axiom-lambda-extension-$ARCH \
+            --layer-name axiom-extension-$ARCH \
             --region ${{ matrix.region }} \
             --description 'axiom lambda extension to push lambda logs to https://axiom.co' \
             --compatible-architectures $ARCH \
@@ -157,7 +157,7 @@ jobs:
 
           # THIS makes the lambda layer public
           aws lambda add-layer-version-permission \
-            --layer-name axiom-lambda-extension-$ARCH \
+            --layer-name axiom-extension-$ARCH \
             --version-number $LAYER_VERSION \
             --statement-id allOrgs \
             --principal '*' \
