@@ -1,7 +1,7 @@
 # Axiom Lambda Extension
 
-![axiom-lambda-extension: Ingest logs and platform events from your Lambda function](.github/images/banner-dark.svg#gh-dark-mode-only)
-![axiom-lambda-extension: Ingest logs and platform events from your Lambda function](.github/images/banner-light.svg#gh-light-mode-only)
+![axiom-lambda-extension: Ingest logs and platform events from your Lambda function](.github/workflows/images/banner-dark.svg#gh-dark-mode-only)
+![axiom-lambda-extension: Ingest logs and platform events from your Lambda function](.github/workflows/images/banner-light.svg#gh-light-mode-only)
 
 
 [Axiom](https://axiom.co) unlocks observability at any scale.
@@ -21,6 +21,8 @@
 For more information check out the [official documentation](https://axiom.co/docs)
 and our [community Discord](https://axiom.co/discord).
 
+
+---
 
 The axiom-extension can send the logs and platform events of your Lambda function to [Axiom](https://axiom.co/). Axiom will detect the extension and provide you with quick filters and a dashboard.
 
