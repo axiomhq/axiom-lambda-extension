@@ -35,8 +35,8 @@ to deny the Lambda Function access to cloudwatch by explicit IAM policies.
 
 1. Set these environment variables on your function:
 
-   - `AXIOM_DATASET`: The dataset name to send logs to
-   - `AXIOM_TOKEN`: The Axiom API token (needs ingest permission into the dataset above). learn more about creating token [here](https://www.axiom.co/docs/restapi/token#creating-an-access-token)
+   - `AXIOM_DATASET`: The dataset name to send logs to. Learn more about creating a dataset [here](https://www.axiom.co/docs/reference/settings#dataset)
+   - `AXIOM_TOKEN`: The Axiom API token (needs ingest permission into the dataset above). Learn more about creating token [here](https://www.axiom.co/docs/restapi/token#creating-an-access-token)
 
 
 2. Add the extension as a layer with the AWS CLI:
