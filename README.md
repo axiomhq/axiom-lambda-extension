@@ -1,5 +1,3 @@
-# Axiom Lambda Extension
-
 ![axiom-lambda-extension: Ingest logs and platform events from your Lambda function](.github/workflows/images/banner-dark.svg#gh-dark-mode-only)
 ![axiom-lambda-extension: Ingest logs and platform events from your Lambda function](.github/workflows/images/banner-light.svg#gh-light-mode-only)
 
