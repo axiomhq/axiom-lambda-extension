@@ -1,7 +1,7 @@
-# axiom-lambda-extension
+# Axiom Lambda Extension
 
 
-The axiom-lambda-extension can send the logs and platform events of your Lambda function to [Axiom](https://axiom.co/). Axiom will detect the extension and provide you with quick filters and a dashboard.
+The axiom-extension can send the logs and platform events of your Lambda function to [Axiom](https://axiom.co/). Axiom will detect the extension and provide you with quick filters and a dashboard.
 
 
 But by using the axiom Lambda extension, you can forget the extra configuration regarding cloudwatch and subscription filters.
@@ -22,7 +22,7 @@ to deny the Lambda Function access to cloudwatch by explicit IAM policies.
 
 ```shell
 $ aws lambda update-function-configuration --function-name my-function \
-    --layers arn:aws:lambda:<AWS_REGION>:694952825951:layer:axiom-lambda-extension-<ARCH>:<VERSION>
+    --layers arn:aws:lambda:<AWS_REGION>:694952825951:layer:axiom-extension-<ARCH>:<VERSION>
 ```
 
 <details>
@@ -32,23 +32,23 @@ All Lambda Layers
 
 |  Region | arm64 | x86_64 |
 |---------|--------|---------|
-| us-west-1 | `arn:aws:lambda:us-west-1:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:us-west-1:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| us-west-2  | `arn:aws:lambda:us-west-2:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:us-west-2:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| us-east-1 | `arn:aws:lambda:us-east-1:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` | `arn:aws:lambda:us-east-1:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| us-east-2 | `arn:aws:lambda:us-east-2:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:us-east-2:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| eu-west-1 | `arn:aws:lambda:eu-west-1:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` | `arn:aws:lambda:eu-west-1:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| eu-west-2 | `arn:aws:lambda:eu-west-2:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:eu-west-2:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| eu-west-3  | `arn:aws:lambda:eu-west-3:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:eu-west-3:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| eu-north-1 | `arn:aws:lambda:eu-north-1:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` | `arn:aws:lambda:eu-north-1:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| eu-central-1 | `arn:aws:lambda:eu-central-1:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:eu-central-1:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| ca-central-1 | `arn:aws:lambda:ca-central-1:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` | `arn:aws:lambda:ca-central-1:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| sa-east-1 | `arn:aws:lambda:sa-east-1:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:sa-east-1:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| ap-south-1  | `arn:aws:lambda:ap-south-1:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:ap-south-1:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| ap-southeast-1 | `arn:aws:lambda:ap-southeast-1:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` | `arn:aws:lambda:ap-southeast-1:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| ap-southeast-2 | `arn:aws:lambda:ap-southeast-2:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:ap-southeast-2:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| ap-northeast-1 | `arn:aws:lambda:ap-northeast-1:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` | `arn:aws:lambda:ap-northeast-1:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| ap-northeast-2 | `arn:aws:lambda:ap-northeast-2:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:ap-northeast-2:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
-| ap-northeast-3  | `arn:aws:lambda:ap-northeast-3:694952825951:layer:axiom-lambda-extension-arm64:<VERSION>` |  `arn:aws:lambda:ap-northeast-3:694952825951:layer:axiom-lambda-extension-x86_64:<VERSION>` |
+| us-west-1 | `arn:aws:lambda:us-west-1:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:us-west-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| us-west-2  | `arn:aws:lambda:us-west-2:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:us-west-2:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| us-east-1 | `arn:aws:lambda:us-east-1:694952825951:layer:axiom-extension-arm64:<VERSION>` | `arn:aws:lambda:us-east-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| us-east-2 | `arn:aws:lambda:us-east-2:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:us-east-2:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| eu-west-1 | `arn:aws:lambda:eu-west-1:694952825951:layer:axiom-extension-arm64:<VERSION>` | `arn:aws:lambda:eu-west-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| eu-west-2 | `arn:aws:lambda:eu-west-2:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:eu-west-2:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| eu-west-3  | `arn:aws:lambda:eu-west-3:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:eu-west-3:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| eu-north-1 | `arn:aws:lambda:eu-north-1:694952825951:layer:axiom-extension-arm64:<VERSION>` | `arn:aws:lambda:eu-north-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| eu-central-1 | `arn:aws:lambda:eu-central-1:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:eu-central-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| ca-central-1 | `arn:aws:lambda:ca-central-1:694952825951:layer:axiom-extension-arm64:<VERSION>` | `arn:aws:lambda:ca-central-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| sa-east-1 | `arn:aws:lambda:sa-east-1:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:sa-east-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| ap-south-1  | `arn:aws:lambda:ap-south-1:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:ap-south-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| ap-southeast-1 | `arn:aws:lambda:ap-southeast-1:694952825951:layer:axiom-extension-arm64:<VERSION>` | `arn:aws:lambda:ap-southeast-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| ap-southeast-2 | `arn:aws:lambda:ap-southeast-2:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:ap-southeast-2:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| ap-northeast-1 | `arn:aws:lambda:ap-northeast-1:694952825951:layer:axiom-extension-arm64:<VERSION>` | `arn:aws:lambda:ap-northeast-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| ap-northeast-2 | `arn:aws:lambda:ap-northeast-2:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:ap-northeast-2:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
+| ap-northeast-3  | `arn:aws:lambda:ap-northeast-3:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:ap-northeast-3:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
 </details>
 
 
@@ -75,7 +75,7 @@ resource "aws_lambda_function" "test_lambda" {
   }
 
   layers = [
-    "arn:aws:lambda:<AWS_REGION>:694952825951:layer:axiom-lambda-extension-<ARCH>:<VERSION>"
+    "arn:aws:lambda:<AWS_REGION>:694952825951:layer:axiom-extension-<ARCH>:<VERSION>"
   ]
 }
 ```
@@ -93,7 +93,7 @@ module "lambda_function" {
   source_path = "../src/lambda-function1"
 
   layers = [
-    "arn:aws:lambda:<AWS_REGION>:694952825951:layer:axiom-lambda-extension-<ARCH>:<VERSION>"
+    "arn:aws:lambda:<AWS_REGION>:694952825951:layer:axiom-extension-<ARCH>:<VERSION>"
   ]
 
   environment_variables = {
