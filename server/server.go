@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/axiomhq/axiom-go/axiom"
+	"github.com/axiomhq/axiom-lambda-extension/version"
 	"go.uber.org/zap"
 )
 
@@ -30,6 +31,7 @@ var (
 	AWS_LAMBDA_INITIALIZATION_TYPE     = os.Getenv("AWS_LAMBDA_INITIALIZATION_TYPE")
 	AWS_LAMBDA_FUNCTION_MEMORY_SIZE, _ = strconv.ParseInt(os.Getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE"), 10, 32)
 	lambdaMetaInfo                     = map[string]any{}
+	axiomMetaInfo                      = map[string]string{}
 )
 
 func init() {
@@ -42,6 +44,9 @@ func init() {
 		"name":               AWS_LAMBDA_FUNCTION_NAME,
 		"memorySizeMB":       AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
 		"version":            AWS_LAMBDA_FUNCTION_VERSION,
+	}
+	axiomMetaInfo = map[string]string{
+		"awsLambdaExtensionVersion": version.Get(),
 	}
 }
 
@@ -78,6 +83,7 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 	for _, e := range events {
 		// attach the lambda information to the event
 		e["lambda"] = lambdaMetaInfo
+		e["axiom"] = axiomMetaInfo
 		// replace the time field with axiom's _time
 		e["_time"], e["time"] = e["time"], nil
 	}
