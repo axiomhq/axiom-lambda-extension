@@ -22,21 +22,27 @@ and our [community Discord](https://axiom.co/discord).
 
 ---
 
-The axiom-extension can send the logs and platform events of your Lambda function to [Axiom](https://axiom.co/). Axiom will detect the extension and provide you with quick filters and a dashboard.
+The axiom-lambda-extension can send logs and platform events of your Lambda function to [Axiom](https://axiom.co/). Axiom will detect the extension and provide you with quick filters and a dashboard.
 
 
-But by using the axiom Lambda extension, you can forget the extra configuration regarding cloudwatch and subscription filters.
+With the Axiom Lambda extension, you can forget about the extra configuration of CloudWatch and subscription filters.
 
-**Note:** The Lambda Service will still sends the logs to CloudWatch logs. If You want to disable cloudwatch logging, you will need
-to deny the Lambda Function access to cloudwatch by explicit IAM policies.
+**Note:** After the Axiom Lambda extension is installed, the Lambda service will still send logs to CloudWatch Logs. 
 
+To disable the CloudWatch logging, follow the steps below:
+
+* Install the Axiom Lambda extension;
+* Make sure everything is working properly in Axiom;
+* Disable the permissions for CloudWatch.
+
+For more detail on how to disable the CloudWatch logging, see the [Axiom documentation](https://www.axiom.co/docs/send-data/lambda#disable-cloudwatch-logging).
 
 ## Quickstart
 
 1. Set these environment variables on your function:
 
    - `AXIOM_DATASET`: The dataset name to send logs to. Learn more about creating a dataset [here](https://www.axiom.co/docs/reference/settings#dataset)
-   - `AXIOM_TOKEN`: The Axiom API token (needs ingest permission into the dataset above). Learn more about creating token [here](https://www.axiom.co/docs/restapi/token#creating-an-access-token)
+   - `AXIOM_TOKEN`: The Axiom API token (needs ingest permission into the dataset above). Learn more about creating tokens [here](https://www.axiom.co/docs/restapi/token#creating-an-access-token)
 
 
 2. Add the extension as a layer with the AWS CLI:
@@ -74,8 +80,10 @@ All Lambda Layers
 
 
 ## Terraform Example
-You can also use terraform to hook up your lambda with axiom lambda layer using the following:
-1. plain terraform code
+
+You can also use Terraform to hook up your Lambda with Axiom Lambda layer in two different ways:
+
+1. Using plain Terraform code:
 ```tf
 resource "aws_lambda_function" "test_lambda" {
   filename      = "lambda_function_payload.zip"
@@ -101,7 +109,7 @@ resource "aws_lambda_function" "test_lambda" {
 }
 ```
 
-2. Using [AWS lambda module](https://registry.terraform.io/modules/terraform-aws-modules/lambda/aws/latest)
+2. Using [AWS lambda module](https://registry.terraform.io/modules/terraform-aws-modules/lambda/aws/latest):
 ```tf
 module "lambda_function" {
   source = "terraform-aws-modules/lambda/aws"
@@ -125,7 +133,8 @@ module "lambda_function" {
 ```
 
 ## Troubleshooting
-Double check that the API token has permission to ingest into the dataset. If that wasn't the issue, please check the function logs on the AWS console, the extension will log any errors with setup or ingest.
+
+Double check that the API token has permission to ingest data into the dataset. If that is not the issue, please check the function logs on the AWS console, the extension will log any errors with setup or ingest.
 
 ## License
 
