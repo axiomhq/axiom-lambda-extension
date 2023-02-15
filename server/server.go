@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -61,10 +62,15 @@ func New(port string, axClient *axiom.Client, axDataset string) *Server {
 	}
 }
 
+func (s *Server) Shutdown(ctx context.Context) {
+	s.httpServer.Shutdown(ctx)
+}
+
 func (s *Server) Start() {
 	http.HandleFunc("/", s.httpHandler)
 
-	_ = s.httpServer.ListenAndServe()
+	err := s.httpServer.ListenAndServe()
+	logger.Error("ListenAndServe returned an error", zap.Error(err))
 }
 
 func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,9 +95,10 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 		e["_time"], e["time"] = e["time"], nil
 	}
 
-	_, err = s.axiomClient.IngestEvents(r.Context(), s.axiomDataset, events)
+	_, err = s.axiomClient.IngestEvents(context.Background(), s.axiomDataset, events)
 	if err != nil {
 		logger.Error("Ingesting Events to Axiom Failed:", zap.Error(err))
 		return
 	}
+
 }

@@ -91,7 +91,7 @@ func (lc *Client) Subscribe(ctx context.Context, types []string, bufferingCfg Bu
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Marshaling subscribeRequest Failed")
+		return nil, fmt.Errorf("marshaling subscribeRequest failed")
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, "PUT", subscribeEndpoint, bytes.NewBuffer(subReq))
@@ -112,7 +112,7 @@ func (lc *Client) Subscribe(ctx context.Context, types []string, bufferingCfg Bu
 	}
 
 	if httpRes.StatusCode != 200 {
-		return nil, fmt.Errorf("Subscription Request Failed with Status %s", httpRes.Status)
+		return nil, fmt.Errorf("subscription request failed with status %s", httpRes.Status)
 	}
 	return &SubscribeResponse{
 		body: string(body),

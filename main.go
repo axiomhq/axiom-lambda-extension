@@ -58,13 +58,21 @@ func main() {
 	if err := rootCmd.ParseAndRun(context.Background(), os.Args[1:]); err != nil && err != flag.ErrHelp {
 		fmt.Fprintln(os.Stderr, err)
 		// TODO: we don't exist here so that we don't kill the lambda
-		// os.Exit(1)
+		os.Exit(1)
 	}
 }
 
 func Run(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt, syscall.SIGINT)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		sig := <-sigs
+		logger.Warn("Received shutdown signal ", zap.Any("sig", sig))
+		cancel()
+	}()
 
 	axClient, err := axiom.NewClient(
 		axiom.SetAPITokenConfig(axiomToken),
@@ -77,57 +85,67 @@ func Run(ctx context.Context) error {
 	httpServer := server.New(logsPort, axClient, axiomDataset)
 	go httpServer.Start()
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	var extensionClient *extension.Client
-	if !developmentMode {
-		// Extension API REGISTRATION
-		extensionClient = extension.New(runtimeAPI)
 
-		_, err := extensionClient.Register(ctx, extensionName)
-		if err != nil {
-			return err
+	if developmentMode {
+		select {
+		case <-ctx.Done():
+			return nil
 		}
+	}
 
-		// LOGS API SUBSCRIPTION
-		logsClient := logsapi.New(runtimeAPI)
+	// Extension API REGISTRATION on startup
+	extensionClient = extension.New(runtimeAPI)
 
-		destination := logsapi.Destination{
-			Protocol:   "HTTP",
-			URI:        logsapi.URI(fmt.Sprintf("http://sandbox.localdomain:%s/", logsPort)),
-			HttpMethod: "POST",
-			Encoding:   "JSON",
-		}
+	_, err = extensionClient.Register(ctx, extensionName)
+	if err != nil {
+		return err
+	}
 
-		bufferingCfg := logsapi.BufferingCfg{
-			MaxItems:  uint32(defaultMaxItems),
-			MaxBytes:  uint32(defaultMaxBytes),
-			TimeoutMS: uint32(defaultTimeoutMS),
-		}
+	// LOGS API SUBSCRIPTION
+	logsClient := logsapi.New(runtimeAPI)
 
-		_, err = logsClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
-		if err != nil {
-			return err
-		}
+	destination := logsapi.Destination{
+		Protocol:   "HTTP",
+		URI:        logsapi.URI(fmt.Sprintf("http://sandbox.localdomain:%s/", logsPort)),
+		HttpMethod: "POST",
+		Encoding:   "JSON",
+	}
+
+	bufferingCfg := logsapi.BufferingCfg{
+		MaxItems:  uint32(defaultMaxItems),
+		MaxBytes:  uint32(defaultMaxBytes),
+		TimeoutMS: uint32(defaultTimeoutMS),
+	}
+
+	_, err = logsClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
+	if err != nil {
+		return err
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
+			logger.Info("Context Done")
 			return nil
-		case s := <-sigs:
-			cancel()
-			logger.Info("Received", zap.Any("Signal", s))
-			_ = logger.Sync()
-			logger.Error("Exiting")
 		default:
-			if !developmentMode {
-				_, err := extensionClient.NextEvent(ctx, extensionName)
-				if err != nil {
-					logger.Error("Next event Failed:", zap.Error(err))
-					return err
+			res, err := extensionClient.NextEvent(ctx, extensionName)
+			if err != nil {
+				logger.Error("Next event Failed:", zap.Error(err))
+				return err
+			}
+			defer func() {
+				if res.EventType == "SHUTDOWN" {
+					logger.Warn("received Lambda shutdown event")
+					httpServer.Shutdown(ctx)
+					cancel()
 				}
+			}()
+
+			if res.EventType == "SHUTDOWN" {
+				httpServer.Shutdown(ctx)
+				cancel()
+				return nil
 			}
 		}
 	}
