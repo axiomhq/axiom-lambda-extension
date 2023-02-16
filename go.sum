@@ -96,6 +96,8 @@ github.com/axiomhq/axiom-go v0.11.0 h1:kNLFEfkXkF2QuGzlxytZoIsvluTweWjxw7zx7mBPz
 github.com/axiomhq/axiom-go v0.11.0/go.mod h1:MsmDRHA/nQSsoJyc/BNe6BGJfSDiBh0snjVR771ySUo=
 github.com/axiomhq/axiom-go v0.14.0 h1:lcft5iT6Gc88wCAwRFbZwIR8xVItoIiVeTMryOpdfKM=
 github.com/axiomhq/axiom-go v0.14.0/go.mod h1:AF8sJFz1RZrnXu4eT/qiDM2NmTvzXpepQhOXcIYZino=
+github.com/axiomhq/pkg v0.3.0 h1:v4scDFPmXB+Wayb8AapIXQcFrBLwr5ERAcevPaIW5GI=
+github.com/axiomhq/pkg v0.3.0/go.mod h1:OjLkiHiN2mO6apKe0RP4vSuhsqhXC4hQGPMt8cTaCmQ=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=

@@ -1,11 +1,13 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+
+	// "net/http"
+
 	"os"
 	"strconv"
 
@@ -13,13 +15,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/axiomhq/axiom-lambda-extension/version"
+	axiomHttp "github.com/axiomhq/pkg/http"
 )
-
-type Server struct {
-	httpServer   *http.Server
-	axiomClient  *axiom.Client
-	axiomDataset string
-}
 
 var (
 	logger *zap.Logger
@@ -52,54 +49,43 @@ func init() {
 	}
 }
 
-func New(port string, axClient *axiom.Client, axDataset string) *Server {
-	return &Server{
-		httpServer: &http.Server{
-			Addr: fmt.Sprintf(":%s", port),
-		},
-		axiomClient:  axClient,
-		axiomDataset: axDataset,
+func New(port string, axClient *axiom.Client, axDataset string) *axiomHttp.Server {
+	s, err := axiomHttp.NewServer(fmt.Sprintf(":%s", port), httpHandler(axClient, axDataset))
+	if err != nil {
+		logger.Error("Error creating server", zap.Error(err))
+		return nil
 	}
+
+	return s
 }
 
-func (s *Server) Shutdown(ctx context.Context) {
-	err := s.httpServer.Shutdown(ctx)
-	if err != nil {
-		logger.Error("Error shutting down server", zap.Error(err))
-	}
-}
+func httpHandler(axiomClient *axiom.Client, axiomDataset string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			logger.Error("Error reading body:", zap.Error(err))
+			return
+		}
 
-func (s *Server) Start() {
-	http.HandleFunc("/", s.httpHandler)
+		var events []axiom.Event
+		err = json.Unmarshal(body, &events)
+		if err != nil {
+			logger.Error("Error unmarshalling body:", zap.Error(err))
+			return
+		}
 
-	s.httpServer.ListenAndServe()
-}
+		for _, e := range events {
+			// attach the lambda information to the event
+			e["lambda"] = lambdaMetaInfo
+			e["axiom"] = axiomMetaInfo
+			// replace the time field with axiom's _time
+			e["_time"], e["time"] = e["time"], nil
+		}
 
-func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		logger.Error("Error reading body:", zap.Error(err))
-		return
-	}
-
-	var events []axiom.Event
-	err = json.Unmarshal(body, &events)
-	if err != nil {
-		logger.Error("Error unmarshalling body:", zap.Error(err))
-		return
-	}
-
-	for _, e := range events {
-		// attach the lambda information to the event
-		e["lambda"] = lambdaMetaInfo
-		e["axiom"] = axiomMetaInfo
-		// replace the time field with axiom's _time
-		e["_time"], e["time"] = e["time"], nil
-	}
-
-	_, err = s.axiomClient.IngestEvents(context.Background(), s.axiomDataset, events)
-	if err != nil {
-		logger.Error("Ingesting Events to Axiom Failed:", zap.Error(err))
-		return
+		_, err = axiomClient.IngestEvents(r.Context(), axiomDataset, events)
+		if err != nil {
+			logger.Error("Ingesting Events to Axiom Failed:", zap.Error(err))
+			return
+		}
 	}
 }

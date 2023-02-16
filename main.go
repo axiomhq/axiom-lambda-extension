@@ -78,7 +78,7 @@ func Run(ctx context.Context) error {
 	}
 
 	httpServer := server.New(logsPort, axClient, axiomDataset)
-	go httpServer.Start()
+	go httpServer.Run(ctx)
 
 	var extensionClient *extension.Client
 
@@ -130,7 +130,7 @@ func Run(ctx context.Context) error {
 			}
 
 			if res.EventType == "SHUTDOWN" {
-				httpServer.Shutdown(ctx)
+				httpServer.Shutdown()
 				cancel()
 				return nil
 			}
