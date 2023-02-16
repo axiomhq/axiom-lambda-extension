@@ -1,8 +1,6 @@
 ![axiom-lambda-extension: Ingest logs and platform events from your Lambda function](.github/workflows/images/banner-dark.svg#gh-dark-mode-only)
 ![axiom-lambda-extension: Ingest logs and platform events from your Lambda function](.github/workflows/images/banner-light.svg#gh-light-mode-only)
 
-[VERSION]: 3
-
 [Axiom](https://axiom.co) unlocks observability at any scale.
 
 - **Ingest with ease, store without limits:** Axiom’s next-generation datastore
@@ -49,8 +47,10 @@ For more detail on how to disable the CloudWatch logging, see the [Axiom documen
 
 ```shell
 $ aws lambda update-function-configuration --function-name my-function \
-    --layers arn:aws:lambda:<AWS_REGION>:694952825951:layer:axiom-extension-<ARCH>:[VERSION]
+    --layers arn:aws:lambda:<AWS_REGION>:694952825951:layer:axiom-extension-<ARCH>:<VERSION>
 ```
+* Use the latest version number specified in [version.go](https://github.com/axiomhq/axiom-lambda-extension/blob/main/version/version.go) for the `VERSION` parameter; 
+* For more detail on `AWS_REGION` and `ARCH` parameters, expand the table below:
 
 <details>
 <summary>
@@ -59,7 +59,7 @@ All Lambda Layers
 
 |  Region | arm64 | x86_64 |
 |---------|--------|---------|
-| us-west-1 | `arn:aws:lambda:us-west-1:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:us-west-1:694952825951:layer:axiom-extension-x86_64:[VERSION]` |
+| us-west-1 | `arn:aws:lambda:us-west-1:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:us-west-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
 | us-west-2  | `arn:aws:lambda:us-west-2:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:us-west-2:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
 | us-east-1 | `arn:aws:lambda:us-east-1:694952825951:layer:axiom-extension-arm64:<VERSION>` | `arn:aws:lambda:us-east-1:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
 | us-east-2 | `arn:aws:lambda:us-east-2:694952825951:layer:axiom-extension-arm64:<VERSION>` |  `arn:aws:lambda:us-east-2:694952825951:layer:axiom-extension-x86_64:<VERSION>` |
