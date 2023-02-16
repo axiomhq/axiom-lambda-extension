@@ -120,7 +120,6 @@ func Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			logger.Info("Context Done", zap.Any("ctx", ctx.Err()))
-			stop()
 			return nil
 		default:
 			res, err := extensionClient.NextEvent(ctx, extensionName)
