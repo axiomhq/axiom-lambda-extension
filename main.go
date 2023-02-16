@@ -58,7 +58,7 @@ func main() {
 	if err := rootCmd.ParseAndRun(context.Background(), os.Args[1:]); err != nil && err != flag.ErrHelp {
 		fmt.Fprintln(os.Stderr, err)
 		// TODO: we don't exist here so that we don't kill the lambda
-		os.Exit(1)
+		// os.Exit(1)
 	}
 }
 
@@ -88,10 +88,8 @@ func Run(ctx context.Context) error {
 	var extensionClient *extension.Client
 
 	if developmentMode {
-		select {
-		case <-ctx.Done():
-			return nil
-		}
+		<-ctx.Done()
+		return nil
 	}
 
 	// Extension API REGISTRATION on startup

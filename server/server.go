@@ -63,7 +63,10 @@ func New(port string, axClient *axiom.Client, axDataset string) *Server {
 }
 
 func (s *Server) Shutdown(ctx context.Context) {
-	s.httpServer.Shutdown(ctx)
+	err := s.httpServer.Shutdown(ctx)
+	if err != nil {
+		logger.Error("Error shutting down server", zap.Error(err))
+	}
 }
 
 func (s *Server) Start() {
@@ -100,5 +103,4 @@ func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Ingesting Events to Axiom Failed:", zap.Error(err))
 		return
 	}
-
 }
