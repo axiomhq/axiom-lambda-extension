@@ -132,13 +132,6 @@ func Run(ctx context.Context) error {
 				logger.Error("Next event Failed:", zap.Error(err))
 				return err
 			}
-			defer func() {
-				if res.EventType == "SHUTDOWN" {
-					logger.Warn("received Lambda shutdown event")
-					httpServer.Shutdown(ctx)
-					cancel()
-				}
-			}()
 
 			if res.EventType == "SHUTDOWN" {
 				httpServer.Shutdown(ctx)
