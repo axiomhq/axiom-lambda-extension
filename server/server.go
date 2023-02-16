@@ -72,8 +72,7 @@ func (s *Server) Shutdown(ctx context.Context) {
 func (s *Server) Start() {
 	http.HandleFunc("/", s.httpHandler)
 
-	err := s.httpServer.ListenAndServe()
-	logger.Error("ListenAndServe returned an error", zap.Error(err))
+	s.httpServer.ListenAndServe()
 }
 
 func (s *Server) httpHandler(w http.ResponseWriter, r *http.Request) {

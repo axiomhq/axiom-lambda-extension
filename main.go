@@ -66,13 +66,8 @@ func Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	go func() {
-		sig := <-sigs
-		logger.Warn("Received shutdown signal ", zap.Any("sig", sig))
-		cancel()
-	}()
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
 	axClient, err := axiom.NewClient(
 		axiom.SetAPITokenConfig(axiomToken),
@@ -124,7 +119,8 @@ func Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Info("Context Done")
+			logger.Info("Context Done", zap.Any("ctx", ctx.Err()))
+			stop()
 			return nil
 		default:
 			res, err := extensionClient.NextEvent(ctx, extensionName)
