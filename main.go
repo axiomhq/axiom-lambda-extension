@@ -49,7 +49,7 @@ func main() {
 		ShortHelp:  "run axiom-lambda-extension",
 		FlagSet:    flag.NewFlagSet("axiom-lambda-extension", flag.ExitOnError),
 		Exec: func(ctx context.Context, args []string) error {
-			return Run(ctx)
+			return Run()
 		},
 	}
 
@@ -62,10 +62,7 @@ func main() {
 	}
 }
 
-func Run(ctx context.Context) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
+func Run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
@@ -130,7 +127,6 @@ func Run(ctx context.Context) error {
 
 			if res.EventType == "SHUTDOWN" {
 				httpServer.Shutdown()
-				cancel()
 				return nil
 			}
 		}
