@@ -11,9 +11,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/axiomhq/axiom-go/axiom"
 	"go.uber.org/zap"
 
+	"github.com/axiomhq/axiom-go/axiom"
+	"github.com/axiomhq/axiom-lambda-extension/flusher"
 	"github.com/axiomhq/axiom-lambda-extension/version"
 	axiomHttp "github.com/axiomhq/pkg/http"
 )
@@ -33,6 +34,12 @@ var (
 	axiomMetaInfo                      = map[string]string{}
 )
 
+var (
+	axiomToken   = os.Getenv("AXIOM_TOKEN")
+	axiomDataset = os.Getenv("AXIOM_DATASET")
+	axiomUrl     = os.Getenv("AXIOM_URL")
+)
+
 func init() {
 	logger, _ = zap.NewProduction()
 
@@ -49,8 +56,8 @@ func init() {
 	}
 }
 
-func New(port string, axClient *axiom.Client, axDataset string) *axiomHttp.Server {
-	s, err := axiomHttp.NewServer(fmt.Sprintf(":%s", port), httpHandler(axClient, axDataset))
+func New(port string, axiom *flusher.Axiom) *axiomHttp.Server {
+	s, err := axiomHttp.NewServer(fmt.Sprintf(":%s", port), httpHandler(axiom))
 	if err != nil {
 		logger.Error("Error creating server", zap.Error(err))
 		return nil
@@ -59,7 +66,7 @@ func New(port string, axClient *axiom.Client, axDataset string) *axiomHttp.Serve
 	return s
 }
 
-func httpHandler(axiomClient *axiom.Client, axiomDataset string) http.HandlerFunc {
+func httpHandler(ax *flusher.Axiom) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -80,12 +87,7 @@ func httpHandler(axiomClient *axiom.Client, axiomDataset string) http.HandlerFun
 			e["axiom"] = axiomMetaInfo
 			// replace the time field with axiom's _time
 			e["_time"], e["time"] = e["time"], nil
-		}
-
-		_, err = axiomClient.IngestEvents(r.Context(), axiomDataset, events)
-		if err != nil {
-			logger.Error("Ingesting Events to Axiom Failed:", zap.Error(err))
-			return
+			ax.EventChan <- e
 		}
 	}
 }

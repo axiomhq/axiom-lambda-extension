@@ -9,14 +9,13 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/axiomhq/axiom-go/axiom"
 	"github.com/peterbourgon/ff/v2/ffcli"
 	"go.uber.org/zap"
 
 	"github.com/axiomhq/axiom-lambda-extension/extension"
+	"github.com/axiomhq/axiom-lambda-extension/flusher"
 	"github.com/axiomhq/axiom-lambda-extension/logsapi"
 	"github.com/axiomhq/axiom-lambda-extension/server"
-	"github.com/axiomhq/axiom-lambda-extension/version"
 )
 
 var (
@@ -30,10 +29,6 @@ var (
 	defaultMaxItems  = 1000
 	defaultMaxBytes  = 262144
 	defaultTimeoutMS = 1000
-
-	// Axiom Config
-	axiomToken   = os.Getenv("AXIOM_TOKEN")
-	axiomDataset = os.Getenv("AXIOM_DATASET")
 
 	developmentMode = false
 	logger          *zap.Logger
@@ -66,15 +61,12 @@ func Run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
-	axClient, err := axiom.NewClient(
-		axiom.SetAPITokenConfig(axiomToken),
-		axiom.SetUserAgent(fmt.Sprintf("axiom-lambda-extension/%s", version.Get())),
-	)
+	axiom, err := flusher.New()
 	if err != nil {
 		return err
 	}
 
-	httpServer := server.New(logsPort, axClient, axiomDataset)
+	httpServer := server.New(logsPort, axiom)
 	go httpServer.Run(ctx)
 
 	var extensionClient *extension.Client
@@ -125,7 +117,11 @@ func Run() error {
 				return err
 			}
 
+			// TODO: how to flush the events channel on wakeup?
+
 			if res.EventType == "SHUTDOWN" {
+				close(axiom.EventChan)
+				<-axiom.StopChan
 				httpServer.Shutdown()
 				return nil
 			}
