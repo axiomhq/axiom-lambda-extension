@@ -117,11 +117,11 @@ func Run() error {
 				return err
 			}
 
-			// TODO: how to flush the events channel on wakeup?
+			// flush events on wakeup
+			axiom.Flush()
 
 			if res.EventType == "SHUTDOWN" {
 				close(axiom.EventChan)
-				<-axiom.StopChan
 				_ = httpServer.Shutdown()
 				return nil
 			}
