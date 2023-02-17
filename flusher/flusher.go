@@ -37,10 +37,11 @@ func New() (*Axiom, error) {
 	go func() {
 		defer close(f.StopChan)
 
-		_, err := f.client.IngestChannel(context.Background(), axiomDataset, f.EventChan)
+		res, err := f.client.IngestChannel(context.Background(), axiomDataset, f.EventChan)
 		if err != nil {
-			log.Printf("Error: Ingesting Events to Axiom Failed: %s", err.Error())
-			return
+			log.Printf("Error: Ingesting Events to Axiom Failed: %s\n", err.Error())
+		} else if res.Failed > 0 {
+			log.Printf("error while ingesting logs, %s\n", res.Failures[0].Error)
 		}
 	}()
 
