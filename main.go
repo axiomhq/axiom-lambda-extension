@@ -122,7 +122,7 @@ func Run() error {
 			if res.EventType == "SHUTDOWN" {
 				close(axiom.EventChan)
 				<-axiom.StopChan
-				httpServer.Shutdown()
+				_ = httpServer.Shutdown()
 				return nil
 			}
 		}

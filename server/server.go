@@ -6,16 +6,17 @@ import (
 	"io"
 	"net/http"
 
-	// "net/http"
-
 	"os"
 	"strconv"
 
 	"go.uber.org/zap"
 
-	"github.com/axiomhq/axiom-go/axiom"
-	"github.com/axiomhq/axiom-lambda-extension/flusher"
 	"github.com/axiomhq/axiom-lambda-extension/version"
+
+	"github.com/axiomhq/axiom-go/axiom"
+
+	"github.com/axiomhq/axiom-lambda-extension/flusher"
+
 	axiomHttp "github.com/axiomhq/pkg/http"
 )
 
@@ -32,12 +33,6 @@ var (
 	AWS_LAMBDA_FUNCTION_MEMORY_SIZE, _ = strconv.ParseInt(os.Getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE"), 10, 32)
 	lambdaMetaInfo                     = map[string]any{}
 	axiomMetaInfo                      = map[string]string{}
-)
-
-var (
-	axiomToken   = os.Getenv("AXIOM_TOKEN")
-	axiomDataset = os.Getenv("AXIOM_DATASET")
-	axiomUrl     = os.Getenv("AXIOM_URL")
 )
 
 func init() {

@@ -6,8 +6,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/axiomhq/axiom-go/axiom"
 	"github.com/axiomhq/axiom-lambda-extension/version"
+
+	"github.com/axiomhq/axiom-go/axiom"
 )
 
 // Axiom Config
@@ -27,6 +28,9 @@ func New() (*Axiom, error) {
 		axiom.SetAPITokenConfig(axiomToken),
 		axiom.SetUserAgent(fmt.Sprintf("axiom-lambda-extension/%s", version.Get())),
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	f := &Axiom{
 		client:    client,
@@ -45,5 +49,5 @@ func New() (*Axiom, error) {
 		}
 	}()
 
-	return f, err
+	return f, nil
 }
