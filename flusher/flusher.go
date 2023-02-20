@@ -58,6 +58,7 @@ func New() (*Axiom, error) {
 				if !ok {
 					// channel is closed
 					f.Flush()
+					return
 				}
 
 				f.batch = append(f.batch, event)
