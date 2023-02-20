@@ -47,9 +47,7 @@ func New() (*Axiom, error) {
 	ctx := context.Background()
 
 	go func() {
-		defer func() {
-			f.ticker.Stop()
-		}()
+		defer f.ticker.Stop()
 
 		for {
 			select {
