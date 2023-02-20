@@ -19,8 +19,10 @@ import (
 )
 
 var (
-	runtimeAPI    = os.Getenv("AWS_LAMBDA_RUNTIME_API")
-	extensionName = filepath.Base(os.Args[0])
+	runtimeAPI        = os.Getenv("AWS_LAMBDA_RUNTIME_API")
+	extensionName     = filepath.Base(os.Args[0])
+	isFirstInvocation = true
+	runtimeDone       = make(chan struct{})
 
 	// API Port
 	logsPort = "8080"
@@ -52,8 +54,6 @@ func main() {
 
 	if err := rootCmd.ParseAndRun(context.Background(), os.Args[1:]); err != nil && err != flag.ErrHelp {
 		fmt.Fprintln(os.Stderr, err)
-		// TODO: we don't exist here so that we don't kill the lambda
-		// os.Exit(1)
 	}
 }
 
@@ -66,7 +66,7 @@ func Run() error {
 		return err
 	}
 
-	httpServer := server.New(logsPort, axiom)
+	httpServer := server.New(logsPort, axiom, runtimeDone)
 	go httpServer.Run(ctx)
 
 	var extensionClient *extension.Client
@@ -117,11 +117,23 @@ func Run() error {
 				return err
 			}
 
-			// flush events on wakeup
-			axiom.Flush()
+			// on every event received, check if we should flush
+			shouldFlush := axiom.ShouldFlush()
+			if shouldFlush {
+				axiom.Flush()
+			}
+
+			// wait for the first invocation to finish (receive platform.runtimeDonw log), then flush
+			if isFirstInvocation {
+				<-runtimeDone
+				// close the channel since it will not be longer used
+				close(runtimeDone)
+				isFirstInvocation = false
+				axiom.Flush()
+			}
 
 			if res.EventType == "SHUTDOWN" {
-				close(axiom.EventChan)
+				axiom.Flush()
 				_ = httpServer.Shutdown()
 				return nil
 			}

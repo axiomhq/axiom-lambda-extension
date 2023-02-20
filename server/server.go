@@ -51,8 +51,8 @@ func init() {
 	}
 }
 
-func New(port string, axiom *flusher.Axiom) *axiomHttp.Server {
-	s, err := axiomHttp.NewServer(fmt.Sprintf(":%s", port), httpHandler(axiom))
+func New(port string, axiom *flusher.Axiom, runtimeDone chan struct{}) *axiomHttp.Server {
+	s, err := axiomHttp.NewServer(fmt.Sprintf(":%s", port), httpHandler(axiom, runtimeDone))
 	if err != nil {
 		logger.Error("Error creating server", zap.Error(err))
 		return nil
@@ -61,7 +61,7 @@ func New(port string, axiom *flusher.Axiom) *axiomHttp.Server {
 	return s
 }
 
-func httpHandler(ax *flusher.Axiom) http.HandlerFunc {
+func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -82,7 +82,12 @@ func httpHandler(ax *flusher.Axiom) http.HandlerFunc {
 			e["axiom"] = axiomMetaInfo
 			// replace the time field with axiom's _time
 			e["_time"], e["time"] = e["time"], nil
-			ax.EventChan <- e
+			ax.Queue(e)
+
+			// inform the extension that platform.runtimeDone event has been received
+			if e["type"] == "platform.runtimeDone" {
+				runtimeDone <- struct{}{}
+			}
 		}
 	}
 }

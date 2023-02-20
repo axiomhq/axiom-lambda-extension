@@ -21,10 +21,9 @@ var (
 )
 
 type Axiom struct {
-	client    *axiom.Client
-	EventChan chan axiom.Event
-	batch     []axiom.Event
-	ticker    *time.Ticker
+	client        *axiom.Client
+	events        []axiom.Event
+	lastFlushTime time.Time
 }
 
 func New() (*Axiom, error) {
@@ -38,55 +37,34 @@ func New() (*Axiom, error) {
 	}
 
 	f := &Axiom{
-		client:    client,
-		EventChan: make(chan axiom.Event),
-		batch:     make([]axiom.Event, 0, batchSize),
-		ticker:    time.NewTicker(flushInterval),
+		client: client,
+		events: make([]axiom.Event, 0),
 	}
-
-	ctx := context.Background()
-
-	go func() {
-		defer f.ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case event, ok := <-f.EventChan:
-				if !ok {
-					// channel is closed
-					f.Flush()
-					return
-				}
-
-				f.batch = append(f.batch, event)
-				if len(f.batch) >= batchSize {
-					f.Flush()
-				}
-			case <-f.ticker.C:
-				f.Flush()
-			}
-		}
-	}()
 
 	return f, nil
 }
 
+func (f *Axiom) ShouldFlush() bool {
+	return len(f.events) > batchSize || f.lastFlushTime.IsZero() || time.Since(f.lastFlushTime) > flushInterval
+}
+
+func (f *Axiom) Queue(event axiom.Event) {
+	f.events = append(f.events, event)
+}
+
 func (f *Axiom) Flush() {
-	if len(f.batch) == 0 {
+	f.lastFlushTime = time.Now()
+	if len(f.events) == 0 {
 		return
 	}
 
-	res, err := f.client.IngestEvents(context.Background(), axiomDataset, f.batch)
+	res, err := f.client.IngestEvents(context.Background(), axiomDataset, f.events)
 	if err != nil {
 		log.Println(fmt.Errorf("failed to ingest events: %w", err))
 		// allow this batch to be retried again
-		f.ticker.Reset(flushInterval)
 		return
 	} else if res.Failed > 0 {
 		log.Printf("%d failures during ingesting, %s", res.Failed, res.Failures[0].Error)
 	}
-	f.ticker.Reset(flushInterval)
-	f.batch = f.batch[:0] // Clear the batch.
+	f.events = f.events[:0] // Clear the batch.
 }
