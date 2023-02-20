@@ -52,7 +52,6 @@ func New() (*Axiom, error) {
 		for {
 			select {
 			case <-ctx.Done():
-				f.ticker.Stop()
 				return
 			case event, ok := <-f.EventChan:
 				if !ok {
