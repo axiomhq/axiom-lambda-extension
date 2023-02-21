@@ -13,8 +13,6 @@ import (
 	"github.com/axiomhq/axiom-go/axiom"
 )
 
-var eventsLock sync.Mutex
-
 // Axiom Config
 var (
 	axiomToken    = os.Getenv("AXIOM_TOKEN")
@@ -26,6 +24,7 @@ var (
 type Axiom struct {
 	client        *axiom.Client
 	events        []axiom.Event
+	eventsLock    sync.Mutex
 	lastFlushTime time.Time
 }
 
@@ -48,22 +47,30 @@ func New() (*Axiom, error) {
 }
 
 func (f *Axiom) ShouldFlush() bool {
+	f.eventsLock.Lock()
+	defer f.eventsLock.Unlock()
+
 	return len(f.events) > batchSize || f.lastFlushTime.IsZero() || time.Since(f.lastFlushTime) > flushInterval
 }
 
 func (f *Axiom) Queue(event axiom.Event) {
-	eventsLock.Lock()
+	f.eventsLock.Lock()
+	defer f.eventsLock.Unlock()
+
 	f.events = append(f.events, event)
-	eventsLock.Unlock()
 }
 
 func (f *Axiom) QueueEvents(events []axiom.Event) {
-	eventsLock.Lock()
+	f.eventsLock.Lock()
+	defer f.eventsLock.Unlock()
+
 	f.events = append(f.events, events...)
-	eventsLock.Unlock()
 }
 
 func (f *Axiom) Flush() {
+	f.eventsLock.Lock()
+	defer f.eventsLock.Unlock()
+
 	f.lastFlushTime = time.Now()
 	if len(f.events) == 0 {
 		return
@@ -77,7 +84,5 @@ func (f *Axiom) Flush() {
 	} else if res.Failed > 0 {
 		log.Printf("%d failures during ingesting, %s", res.Failed, res.Failures[0].Error)
 	}
-	eventsLock.Lock()
 	f.events = f.events[:0] // Clear the batch.
-	eventsLock.Unlock()
 }
