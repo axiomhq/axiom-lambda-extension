@@ -123,11 +123,9 @@ func Run() error {
 				axiom.Flush()
 			}
 
-			// wait for the first invocation to finish (receive platform.runtimeDonw log), then flush
+			// wait for the first invocation to finish (receive platform.runtimeDone log), then flush
 			if isFirstInvocation {
 				<-runtimeDone
-				// close the channel since it will not be longer used
-				close(runtimeDone)
 				isFirstInvocation = false
 				axiom.Flush()
 			}

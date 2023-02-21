@@ -21,7 +21,8 @@ import (
 )
 
 var (
-	logger *zap.Logger
+	logger              *zap.Logger
+	firstInvocationDone = false
 )
 
 // lambda environment variables
@@ -76,18 +77,30 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			return
 		}
 
+		notifyRuntimeDone := false
+
 		for _, e := range events {
 			// attach the lambda information to the event
 			e["lambda"] = lambdaMetaInfo
 			e["axiom"] = axiomMetaInfo
 			// replace the time field with axiom's _time
 			e["_time"], e["time"] = e["time"], nil
-			ax.Queue(e)
 
-			// inform the extension that platform.runtimeDone event has been received
-			if e["type"] == "platform.runtimeDone" {
-				runtimeDone <- struct{}{}
+			// decide if the handler should notify the extension that the runtime is done
+			if e["type"] == "platform.runtimeDone" && !firstInvocationDone {
+				notifyRuntimeDone = true
 			}
+		}
+
+		// queue all the events at once to prevent locking and unlocking the mutex
+		// on each event
+		ax.QueueEvents(events)
+		// inform the extension that platform.runtimeDone event has been received
+		if notifyRuntimeDone {
+			runtimeDone <- struct{}{}
+			firstInvocationDone = true
+			// close the channel since it will not be longer used
+			close(runtimeDone)
 		}
 	}
 }
