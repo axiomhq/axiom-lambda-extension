@@ -1,7 +1,6 @@
 ![axiom-lambda-extension: Ingest logs and platform events from your Lambda function](.github/workflows/images/banner-dark.svg#gh-dark-mode-only)
 ![axiom-lambda-extension: Ingest logs and platform events from your Lambda function](.github/workflows/images/banner-light.svg#gh-light-mode-only)
 
-
 [Axiom](https://axiom.co) unlocks observability at any scale.
 
 - **Ingest with ease, store without limits:** Axiom’s next-generation datastore
@@ -23,7 +22,6 @@ and our [community Discord](https://axiom.co/discord).
 ---
 
 The axiom-lambda-extension can send logs and platform events of your Lambda function to [Axiom](https://axiom.co/). Axiom will detect the extension and provide you with quick filters and a dashboard.
-
 
 With the Axiom Lambda extension, you can forget about the extra configuration of CloudWatch and subscription filters.
 
@@ -51,6 +49,8 @@ For more detail on how to disable the CloudWatch logging, see the [Axiom documen
 $ aws lambda update-function-configuration --function-name my-function \
     --layers arn:aws:lambda:<AWS_REGION>:694952825951:layer:axiom-extension-<ARCH>:<VERSION>
 ```
+* Use the **latest** version number specified on the [Releases](https://github.com/axiomhq/axiom-lambda-extension/releases) page for the `VERSION` parameter. For example, `3`.
+* For more detail on `AWS_REGION` and `ARCH` parameters, expand the table below:
 
 <details>
 <summary>
