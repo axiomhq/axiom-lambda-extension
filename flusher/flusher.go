@@ -69,20 +69,26 @@ func (f *Axiom) QueueEvents(events []axiom.Event) {
 
 func (f *Axiom) Flush() {
 	f.eventsLock.Lock()
-	defer f.eventsLock.Unlock()
+	var batch []axiom.Event
+	// create a copy of the batch, clear the original
+	batch, f.events = f.events, []axiom.Event{}
+	f.eventsLock.Unlock()
 
 	f.lastFlushTime = time.Now()
 	if len(f.events) == 0 {
 		return
 	}
 
-	res, err := f.client.IngestEvents(context.Background(), axiomDataset, f.events)
+	res, err := f.client.IngestEvents(context.Background(), axiomDataset, batch)
 	if err != nil {
 		log.Println(fmt.Errorf("failed to ingest events: %w", err))
-		// allow this batch to be retried again
+		// allow this batch to be retried again, put them back
+		f.eventsLock.Lock()
+		defer f.eventsLock.Unlock()
+		f.events = append(batch, f.events...)
+
 		return
 	} else if res.Failed > 0 {
 		log.Printf("%d failures during ingesting, %s", res.Failed, res.Failures[0].Error)
 	}
-	f.events = f.events[:0] // Clear the batch.
 }
