@@ -108,6 +108,7 @@ func Run() error {
 	for {
 		select {
 		case <-ctx.Done():
+			axiom.Flush()
 			logger.Info("Context Done", zap.Any("ctx", ctx.Err()))
 			return nil
 		default:
