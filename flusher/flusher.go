@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/axiomhq/axiom-lambda-extension/version"
 
 	"github.com/axiomhq/axiom-go/axiom"
 )
+
+var eventsLock sync.Mutex
 
 // Axiom Config
 var (
@@ -49,7 +52,15 @@ func (f *Axiom) ShouldFlush() bool {
 }
 
 func (f *Axiom) Queue(event axiom.Event) {
+	eventsLock.Lock()
 	f.events = append(f.events, event)
+	eventsLock.Unlock()
+}
+
+func (f *Axiom) QueueEvents(events []axiom.Event) {
+	eventsLock.Lock()
+	f.events = append(f.events, events...)
+	eventsLock.Unlock()
 }
 
 func (f *Axiom) Flush() {
@@ -66,5 +77,7 @@ func (f *Axiom) Flush() {
 	} else if res.Failed > 0 {
 		log.Printf("%d failures during ingesting, %s", res.Failed, res.Failures[0].Error)
 	}
+	eventsLock.Lock()
 	f.events = f.events[:0] // Clear the batch.
+	eventsLock.Unlock()
 }
