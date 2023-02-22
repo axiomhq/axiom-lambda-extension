@@ -9,19 +9,20 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/axiomhq/axiom-go/axiom"
 	"github.com/peterbourgon/ff/v2/ffcli"
 	"go.uber.org/zap"
 
 	"github.com/axiomhq/axiom-lambda-extension/extension"
+	"github.com/axiomhq/axiom-lambda-extension/flusher"
 	"github.com/axiomhq/axiom-lambda-extension/logsapi"
 	"github.com/axiomhq/axiom-lambda-extension/server"
-	"github.com/axiomhq/axiom-lambda-extension/version"
 )
 
 var (
-	runtimeAPI    = os.Getenv("AWS_LAMBDA_RUNTIME_API")
-	extensionName = filepath.Base(os.Args[0])
+	runtimeAPI        = os.Getenv("AWS_LAMBDA_RUNTIME_API")
+	extensionName     = filepath.Base(os.Args[0])
+	isFirstInvocation = true
+	runtimeDone       = make(chan struct{})
 
 	// API Port
 	logsPort = "8080"
@@ -30,10 +31,6 @@ var (
 	defaultMaxItems  = 1000
 	defaultMaxBytes  = 262144
 	defaultTimeoutMS = 1000
-
-	// Axiom Config
-	axiomToken   = os.Getenv("AXIOM_TOKEN")
-	axiomDataset = os.Getenv("AXIOM_DATASET")
 
 	developmentMode = false
 	logger          *zap.Logger
@@ -49,7 +46,7 @@ func main() {
 		ShortHelp:  "run axiom-lambda-extension",
 		FlagSet:    flag.NewFlagSet("axiom-lambda-extension", flag.ExitOnError),
 		Exec: func(ctx context.Context, args []string) error {
-			return Run(ctx)
+			return Run()
 		},
 	}
 
@@ -57,77 +54,87 @@ func main() {
 
 	if err := rootCmd.ParseAndRun(context.Background(), os.Args[1:]); err != nil && err != flag.ErrHelp {
 		fmt.Fprintln(os.Stderr, err)
-		// TODO: we don't exist here so that we don't kill the lambda
-		// os.Exit(1)
 	}
 }
 
-func Run(ctx context.Context) error {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt, syscall.SIGINT)
+func Run() error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
-	axClient, err := axiom.NewClient(
-		axiom.SetAPITokenConfig(axiomToken),
-		axiom.SetUserAgent(fmt.Sprintf("axiom-lambda-extension/%s", version.Get())),
-	)
+	axiom, err := flusher.New()
 	if err != nil {
 		return err
 	}
 
-	httpServer := server.New(logsPort, axClient, axiomDataset)
-	go httpServer.Start()
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	httpServer := server.New(logsPort, axiom, runtimeDone)
+	go httpServer.Run(ctx)
 
 	var extensionClient *extension.Client
-	if !developmentMode {
-		// Extension API REGISTRATION
-		extensionClient = extension.New(runtimeAPI)
 
-		_, err := extensionClient.Register(ctx, extensionName)
-		if err != nil {
-			return err
-		}
+	if developmentMode {
+		<-ctx.Done()
+		return nil
+	}
 
-		// LOGS API SUBSCRIPTION
-		logsClient := logsapi.New(runtimeAPI)
+	// Extension API REGISTRATION on startup
+	extensionClient = extension.New(runtimeAPI)
 
-		destination := logsapi.Destination{
-			Protocol:   "HTTP",
-			URI:        logsapi.URI(fmt.Sprintf("http://sandbox.localdomain:%s/", logsPort)),
-			HttpMethod: "POST",
-			Encoding:   "JSON",
-		}
+	_, err = extensionClient.Register(ctx, extensionName)
+	if err != nil {
+		return err
+	}
 
-		bufferingCfg := logsapi.BufferingCfg{
-			MaxItems:  uint32(defaultMaxItems),
-			MaxBytes:  uint32(defaultMaxBytes),
-			TimeoutMS: uint32(defaultTimeoutMS),
-		}
+	// LOGS API SUBSCRIPTION
+	logsClient := logsapi.New(runtimeAPI)
 
-		_, err = logsClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
-		if err != nil {
-			return err
-		}
+	destination := logsapi.Destination{
+		Protocol:   "HTTP",
+		URI:        logsapi.URI(fmt.Sprintf("http://sandbox.localdomain:%s/", logsPort)),
+		HttpMethod: "POST",
+		Encoding:   "JSON",
+	}
+
+	bufferingCfg := logsapi.BufferingCfg{
+		MaxItems:  uint32(defaultMaxItems),
+		MaxBytes:  uint32(defaultMaxBytes),
+		TimeoutMS: uint32(defaultTimeoutMS),
+	}
+
+	_, err = logsClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
+	if err != nil {
+		return err
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
+			axiom.Flush()
+			logger.Info("Context Done", zap.Any("ctx", ctx.Err()))
 			return nil
-		case s := <-sigs:
-			cancel()
-			logger.Info("Received", zap.Any("Signal", s))
-			_ = logger.Sync()
-			logger.Error("Exiting")
 		default:
-			if !developmentMode {
-				_, err := extensionClient.NextEvent(ctx, extensionName)
-				if err != nil {
-					logger.Error("Next event Failed:", zap.Error(err))
-					return err
-				}
+			res, err := extensionClient.NextEvent(ctx, extensionName)
+			if err != nil {
+				logger.Error("Next event Failed:", zap.Error(err))
+				return err
+			}
+
+			// on every event received, check if we should flush
+			shouldFlush := axiom.ShouldFlush()
+			if shouldFlush {
+				axiom.Flush()
+			}
+
+			// wait for the first invocation to finish (receive platform.runtimeDone log), then flush
+			if isFirstInvocation {
+				<-runtimeDone
+				isFirstInvocation = false
+				axiom.Flush()
+			}
+
+			if res.EventType == "SHUTDOWN" {
+				axiom.Flush()
+				_ = httpServer.Shutdown()
+				return nil
 			}
 		}
 	}
