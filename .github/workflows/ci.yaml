@@ -99,7 +99,7 @@ jobs:
             --action lambda:GetLayerVersion
 
   deploy_latest_layer_dev:
-    name: Deplot Latest Layer in Development Query Lambda
+    name: Deploy Latest Layer in Development Query Lambda
     runs-on: ubuntu-latest
     if: github.repository_owner == 'axiomhq' && github.ref == 'refs/heads/main'
     needs:
@@ -115,13 +115,13 @@ jobs:
           # get Latest Layer version
           LATEST_LAYER_ARN=$(aws lambda list-layer-versions \
             --layer-name axiom-extension-arm64 \
-            --query 'LayerVersions[0].LayerVersionArn')
-          
+            --query 'LayerVersions[0].LayerVersionArn' | tr -d '"' )
+
           # Update DB Query function with the latest version
           aws lambda update-function-configuration \
             --function-name db-query-function-5k4h7 \
             --layers $LATEST_LAYER_ARN
-        
+
   publish_to_production:
     name: Publish ${{ matrix.architecture }} binary in ${{ matrix.region }} in Production AWS Account
     runs-on: ubuntu-latest
