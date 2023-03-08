@@ -109,7 +109,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_DEV_IAM_ROLE }}
           role-session-name: lambda_extension
-          aws-region: ${{ matrix.region }}
+          aws-region: eu-west-1
       - name: Update DB query with the latest layer version
         run: |
           # get Latest Layer version
