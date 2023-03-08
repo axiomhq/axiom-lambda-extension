@@ -98,6 +98,30 @@ jobs:
             --region ${{ matrix.region }} \
             --action lambda:GetLayerVersion
 
+  deploy_latest_layer_dev:
+    name: Deplot Latest Layer in Development Query Lambda
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'axiomhq' && github.ref == 'refs/heads/main'
+    needs:
+      - publish
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_DEV_IAM_ROLE }}
+          role-session-name: lambda_extension
+          aws-region: ${{ matrix.region }}
+      - name: Update DB query with the latest layer version
+        run: |
+          # get Latest Layer version
+          LATEST_LAYER_ARN=$(aws lambda list-layer-versions \
+            --layer-name axiom-extension-arm64 \
+            --query 'LayerVersions[0].LayerVersionArn')
+          
+          # Update DB Query function with the latest version
+          aws lambda update-function-configuration \
+            --function-name db-query-function-5k4h7 \
+            --layers $LATEST_LAYER_ARN
+        
   publish_to_production:
     name: Publish ${{ matrix.architecture }} binary in ${{ matrix.region }} in Production AWS Account
     runs-on: ubuntu-latest
