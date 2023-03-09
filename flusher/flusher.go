@@ -75,7 +75,7 @@ func (f *Axiom) Flush() {
 	f.eventsLock.Unlock()
 
 	f.lastFlushTime = time.Now()
-	if len(f.events) == 0 {
+	if len(batch) == 0 {
 		return
 	}
 
