@@ -63,7 +63,9 @@ func Run() error {
 
 	axiom, err := flusher.New()
 	if err != nil {
-		return err
+		// don't return here, we want to run the parent layer even if axiom client creation fails, otherwise
+		// the layer will crash.
+		logger.Error("Error creating axiom client", zap.Error(err))
 	}
 
 	httpServer := server.New(logsPort, axiom, runtimeDone)
