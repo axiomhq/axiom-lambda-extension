@@ -100,9 +100,10 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 
 		// queue all the events at once to prevent locking and unlocking the mutex
 		// on each event
-		if ax != nil {
-			ax.QueueEvents(events)
-		}
+		flusher.SafelyUseAxiomClient(ax, func(client *flusher.Axiom) {
+			client.QueueEvents(events)
+		})
+
 		// inform the extension that platform.runtimeDone event has been received
 		if notifyRuntimeDone {
 			runtimeDone <- struct{}{}

@@ -110,9 +110,9 @@ func Run() error {
 	for {
 		select {
 		case <-ctx.Done():
-			if axiom != nil {
-				axiom.Flush()
-			}
+			flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
+				client.Flush()
+			})
 			logger.Info("Context Done", zap.Any("ctx", ctx.Err()))
 			return nil
 		default:
@@ -123,23 +123,25 @@ func Run() error {
 			}
 
 			// on every event received, check if we should flush
-			if axiom != nil && axiom.ShouldFlush() {
-				axiom.Flush()
-			}
+			flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
+				if client.ShouldFlush() {
+					client.Flush()
+				}
+			})
 
 			// wait for the first invocation to finish (receive platform.runtimeDone log), then flush
 			if isFirstInvocation {
 				<-runtimeDone
 				isFirstInvocation = false
-				if axiom != nil {
-					axiom.Flush()
-				}
+				flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
+					client.Flush()
+				})
 			}
 
 			if res.EventType == "SHUTDOWN" {
-				if axiom != nil {
-					axiom.Flush()
-				}
+				flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
+					client.Flush()
+				})
 				_ = httpServer.Shutdown()
 				return nil
 			}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/axiomhq/axiom-lambda-extension/version"
+	"go.uber.org/zap"
 
 	"github.com/axiomhq/axiom-go/axiom"
 )
@@ -19,7 +20,12 @@ var (
 	axiomDataset  = os.Getenv("AXIOM_DATASET")
 	batchSize     = 1000
 	flushInterval = 1 * time.Second
+	logger        *zap.Logger
 )
+
+func init() {
+	logger, _ = zap.NewProduction()
+}
 
 type Axiom struct {
 	client        *axiom.Client
@@ -81,7 +87,7 @@ func (f *Axiom) Flush() {
 
 	res, err := f.client.IngestEvents(context.Background(), axiomDataset, batch)
 	if err != nil {
-		log.Println(fmt.Errorf("failed to ingest events: %w", err))
+		logger.Error("failed to ingest events", zap.Error(err))
 		// allow this batch to be retried again, put them back
 		f.eventsLock.Lock()
 		defer f.eventsLock.Unlock()
@@ -90,5 +96,14 @@ func (f *Axiom) Flush() {
 		return
 	} else if res.Failed > 0 {
 		log.Printf("%d failures during ingesting, %s", res.Failed, res.Failures[0].Error)
+	}
+}
+
+// SafelyUseAxiomClient checks if axiom is empty, and if not, executes the given
+func SafelyUseAxiomClient(axiom *Axiom, action func(*Axiom)) {
+	if axiom != nil {
+		action(axiom)
+	} else {
+		logger.Error("Attempted to use uninitialized Axiom client.")
 	}
 }
