@@ -63,7 +63,9 @@ func Run() error {
 
 	axiom, err := flusher.New()
 	if err != nil {
-		return err
+		// We don't want to exit with error, so that the extensions doesn't crash and crash the main function with it.
+		// so we continue even if Axiom client is nil
+		logger.Error("error creating axiom client", zap.Error(err))
 	}
 
 	httpServer := server.New(logsPort, axiom, runtimeDone)
@@ -108,7 +110,9 @@ func Run() error {
 	for {
 		select {
 		case <-ctx.Done():
-			axiom.Flush()
+			flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
+				client.Flush()
+			})
 			logger.Info("Context Done", zap.Any("ctx", ctx.Err()))
 			return nil
 		default:
@@ -119,20 +123,25 @@ func Run() error {
 			}
 
 			// on every event received, check if we should flush
-			shouldFlush := axiom.ShouldFlush()
-			if shouldFlush {
-				axiom.Flush()
-			}
+			flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
+				if client.ShouldFlush() {
+					client.Flush()
+				}
+			})
 
 			// wait for the first invocation to finish (receive platform.runtimeDone log), then flush
 			if isFirstInvocation {
 				<-runtimeDone
 				isFirstInvocation = false
-				axiom.Flush()
+				flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
+					client.Flush()
+				})
 			}
 
 			if res.EventType == "SHUTDOWN" {
-				axiom.Flush()
+				flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
+					client.Flush()
+				})
 				_ = httpServer.Shutdown()
 				return nil
 			}

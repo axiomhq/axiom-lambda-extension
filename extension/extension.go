@@ -37,8 +37,8 @@ type NextEventResponse struct {
 }
 
 const (
-	extensionNameHeader      = "Lambda-Extension-Name"
-	extensionIdentiferHeader = "Lambda-Extension-Identifier"
+	extensionNameHeader       = "Lambda-Extension-Name"
+	extensionIdentifierHeader = "Lambda-Extension-Identifier"
 )
 
 func New(LogsAPI string) *Client {
@@ -85,7 +85,7 @@ func (c *Client) Register(ctx context.Context, extensionName string) (*RegisterR
 		return nil, err
 	}
 
-	c.ExtensionID = httpRes.Header.Get(extensionIdentiferHeader)
+	c.ExtensionID = httpRes.Header.Get(extensionIdentifierHeader)
 	return &RegRes, nil
 }
 
@@ -97,7 +97,7 @@ func (c *Client) NextEvent(ctx context.Context, extensionName string) (*NextEven
 	}
 
 	httpReq.Header.Set(extensionNameHeader, extensionName)
-	httpReq.Header.Set(extensionIdentiferHeader, c.ExtensionID)
+	httpReq.Header.Set(extensionIdentifierHeader, c.ExtensionID)
 
 	httpRes, err := c.httpClient.Do(httpReq)
 	if err != nil {

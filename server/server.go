@@ -34,6 +34,7 @@ var (
 	AWS_LAMBDA_FUNCTION_MEMORY_SIZE, _ = strconv.ParseInt(os.Getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE"), 10, 32)
 	lambdaMetaInfo                     = map[string]any{}
 	axiomMetaInfo                      = map[string]string{}
+	appMetaInfo                        = map[string]string{}
 )
 
 func init() {
@@ -49,6 +50,10 @@ func init() {
 	}
 	axiomMetaInfo = map[string]string{
 		"awsLambdaExtensionVersion": version.Get(),
+	}
+	appMetaInfo = map[string]string{
+		"slug":    "axiom-lambda-extension",
+		"version": version.Get(),
 	}
 }
 
@@ -83,6 +88,7 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			// attach the lambda information to the event
 			e["lambda"] = lambdaMetaInfo
 			e["axiom"] = axiomMetaInfo
+			e["@app"] = appMetaInfo
 			// replace the time field with axiom's _time
 			e["_time"], e["time"] = e["time"], nil
 
@@ -94,7 +100,10 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 
 		// queue all the events at once to prevent locking and unlocking the mutex
 		// on each event
-		ax.QueueEvents(events)
+		flusher.SafelyUseAxiomClient(ax, func(client *flusher.Axiom) {
+			client.QueueEvents(events)
+		})
+
 		// inform the extension that platform.runtimeDone event has been received
 		if notifyRuntimeDone {
 			runtimeDone <- struct{}{}
