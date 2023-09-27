@@ -63,9 +63,9 @@ func Run() error {
 
 	axiom, err := flusher.New()
 	if err != nil {
-		// don't return here, we want to run the parent layer even if axiom client creation fails, otherwise
-		// the layer will crash.
-		logger.Error("Error creating axiom client", zap.Error(err))
+		// We don't want to exit with error, so that the extensions doesn't crash and crash the main function with it.
+		// so we continue even if Axiom client is nil
+		logger.Error("error creating axiom client", zap.Error(err))
 	}
 
 	httpServer := server.New(logsPort, axiom, runtimeDone)
@@ -110,7 +110,9 @@ func Run() error {
 	for {
 		select {
 		case <-ctx.Done():
-			axiom.Flush()
+			if axiom != nil {
+				axiom.Flush()
+			}
 			logger.Info("Context Done", zap.Any("ctx", ctx.Err()))
 			return nil
 		default:
@@ -121,8 +123,7 @@ func Run() error {
 			}
 
 			// on every event received, check if we should flush
-			shouldFlush := axiom.ShouldFlush()
-			if shouldFlush {
+			if axiom != nil && axiom.ShouldFlush() {
 				axiom.Flush()
 			}
 
@@ -130,11 +131,15 @@ func Run() error {
 			if isFirstInvocation {
 				<-runtimeDone
 				isFirstInvocation = false
-				axiom.Flush()
+				if axiom != nil {
+					axiom.Flush()
+				}
 			}
 
 			if res.EventType == "SHUTDOWN" {
-				axiom.Flush()
+				if axiom != nil {
+					axiom.Flush()
+				}
 				_ = httpServer.Shutdown()
 				return nil
 			}
