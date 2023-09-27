@@ -42,6 +42,9 @@ For more detail on how to disable the CloudWatch logging, see the [Axiom documen
    - `AXIOM_DATASET`: The dataset name to send logs to. Learn more about creating a dataset [here](https://www.axiom.co/docs/reference/settings#dataset)
    - `AXIOM_TOKEN`: The Axiom API token (needs ingest permission into the dataset above). Learn more about creating tokens [here](https://www.axiom.co/docs/restapi/token#creating-an-access-token)
 
+**note** the extensions will not work without correct credentials, but it will not crash your function. If you want it to crash for testing purposes
+check the [Troubleshooting](#troubleshooting) section below.
+
 
 2. Add the extension as a layer with the AWS CLI:
 
@@ -135,6 +138,8 @@ module "lambda_function" {
 ## Troubleshooting
 
 Double check that the API token has permission to ingest data into the dataset. If that is not the issue, please check the function logs on the AWS console, the extension will log any errors with setup or ingest.
+
+For testing purposes you can also set the `PANIC_ON_API_ERR` environment variable to `true` to tell the extension to crash if couldn't connect to Axiom.
 
 ## License
 

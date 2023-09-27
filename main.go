@@ -20,6 +20,7 @@ import (
 
 var (
 	runtimeAPI        = os.Getenv("AWS_LAMBDA_RUNTIME_API")
+	crashOnAPIErr     = os.Getenv("PANIC_ON_API_ERR")
 	extensionName     = filepath.Base(os.Args[0])
 	isFirstInvocation = true
 	runtimeDone       = make(chan struct{})
@@ -65,7 +66,11 @@ func Run() error {
 	if err != nil {
 		// We don't want to exit with error, so that the extensions doesn't crash and crash the main function with it.
 		// so we continue even if Axiom client is nil
-		logger.Error("error creating axiom client", zap.Error(err))
+		logger.Error("error creating axiom client, no logs will send to Axiom.", zap.Error(err))
+		// if users want to crash on error, they can set the PANIC_ON_API_ERROR env variable
+		if crashOnAPIErr == "true" {
+			return err
+		}
 	}
 
 	httpServer := server.New(logsPort, axiom, runtimeDone)
