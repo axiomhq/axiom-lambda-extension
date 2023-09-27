@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/axiomhq/axiom-lambda-extension/version"
+	"github.com/axiomhq/axiom-go/axiom"
 	"go.uber.org/zap"
 
-	"github.com/axiomhq/axiom-go/axiom"
+	"github.com/axiomhq/axiom-lambda-extension/version"
 )
 
 // Axiom Config
