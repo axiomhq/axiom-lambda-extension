@@ -109,9 +109,9 @@ func (f *Axiom) Flush(opt RetryOpt) {
 	var res *ingest.Status
 	var err error
 	if opt == Retry {
-		res, _ = f.retryClient.IngestEvents(context.Background(), axiomDataset, batch)
+		res, err = f.retryClient.IngestEvents(context.Background(), axiomDataset, batch)
 	} else {
-		res, _ = f.client.IngestEvents(context.Background(), axiomDataset, batch)
+		res, err = f.client.IngestEvents(context.Background(), axiomDataset, batch)
 	}
 
 	if err != nil {
