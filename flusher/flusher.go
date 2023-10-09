@@ -116,9 +116,9 @@ func (f *Axiom) Flush(opt RetryOpt) {
 
 	if err != nil {
 		if opt == Retry {
-			logger.Error("Failed to ingest events (will try again with next event)", zap.Error(err))
-		} else {
 			logger.Error("Failed to ingest events", zap.Error(err))
+		} else {
+			logger.Error("Failed to ingest events (will try again with next event)", zap.Error(err))
 		}
 		// allow this batch to be retried again, put them back
 		f.eventsLock.Lock()
