@@ -66,7 +66,7 @@ func Run() error {
 	if err != nil {
 		// We don't want to exit with error, so that the extensions doesn't crash and crash the main function with it.
 		// so we continue even if Axiom client is nil
-		logger.Error("error creating axiom client, no logs will send to Axiom.", zap.Error(err))
+		logger.Error("Failed to create Axiom client, no logs will be sent to Axiom", zap.Error(err))
 		// if users want to crash on error, they can set the PANIC_ON_API_ERROR env variable
 		if crashOnAPIErr == "true" {
 			return err
@@ -112,41 +112,44 @@ func Run() error {
 		return err
 	}
 
+	// Make sure we flush with retry on exit
+	defer func() {
+		flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
+			client.Flush(flusher.Retry)
+		})
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
-			flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
-				client.Flush()
-			})
-			logger.Info("Context Done", zap.Any("ctx", ctx.Err()))
+			logger.Info("Context done", zap.Error(ctx.Err()))
 			return nil
 		default:
 			res, err := extensionClient.NextEvent(ctx, extensionName)
 			if err != nil {
-				logger.Error("Next event Failed:", zap.Error(err))
+				logger.Error("Next event failed:", zap.Error(err))
 				return err
 			}
 
-			// on every event received, check if we should flush
+			// On every event received, check if we should flush
 			flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
 				if client.ShouldFlush() {
-					client.Flush()
+					// No retry, we'll try again with the next event
+					client.Flush(flusher.NoRetry)
 				}
 			})
 
-			// wait for the first invocation to finish (receive platform.runtimeDone log), then flush
+			// Wait for the first invocation to finish (receive platform.runtimeDone log), then flush
 			if isFirstInvocation {
 				<-runtimeDone
 				isFirstInvocation = false
 				flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
-					client.Flush()
+					// No retry, we'll try again with the next event
+					client.Flush(flusher.NoRetry)
 				})
 			}
 
 			if res.EventType == "SHUTDOWN" {
-				flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
-					client.Flush()
-				})
 				_ = httpServer.Shutdown()
 				return nil
 			}

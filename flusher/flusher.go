@@ -9,9 +9,17 @@ import (
 	"time"
 
 	"github.com/axiomhq/axiom-go/axiom"
+	"github.com/axiomhq/axiom-go/axiom/ingest"
 	"go.uber.org/zap"
 
 	"github.com/axiomhq/axiom-lambda-extension/version"
+)
+
+type RetryOpt int
+
+const (
+	NoRetry RetryOpt = iota
+	Retry
 )
 
 // Axiom Config
@@ -29,24 +37,37 @@ func init() {
 
 type Axiom struct {
 	client        *axiom.Client
+	retryClient   *axiom.Client
 	events        []axiom.Event
 	eventsLock    sync.Mutex
 	lastFlushTime time.Time
 }
 
 func New() (*Axiom, error) {
-	client, err := axiom.NewClient(
+	// We create two almost identical clients, but one will retry and one will
+	// not. This is mostly because we are just waiting for the next flush with
+	// the next event most of the time, but want to retry on exit/shutdown.
+
+	opts := []axiom.Option{
 		axiom.SetAPITokenConfig(axiomToken),
 		axiom.SetUserAgent(fmt.Sprintf("axiom-lambda-extension/%s", version.Get())),
-		axiom.SetNoRetry(),
-	)
+	}
+
+	retryClient, err := axiom.NewClient(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	opts = append(opts, axiom.SetNoRetry())
+	client, err := axiom.NewClient(opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	f := &Axiom{
-		client: client,
-		events: make([]axiom.Event, 0),
+		client:      client,
+		retryClient: retryClient,
+		events:      make([]axiom.Event, 0),
 	}
 
 	return f, nil
@@ -73,7 +94,7 @@ func (f *Axiom) QueueEvents(events []axiom.Event) {
 	f.events = append(f.events, events...)
 }
 
-func (f *Axiom) Flush() {
+func (f *Axiom) Flush(opt RetryOpt) {
 	f.eventsLock.Lock()
 	var batch []axiom.Event
 	// create a copy of the batch, clear the original
@@ -85,9 +106,20 @@ func (f *Axiom) Flush() {
 		return
 	}
 
-	res, err := f.client.IngestEvents(context.Background(), axiomDataset, batch)
+	var res *ingest.Status
+	var err error
+	if opt == Retry {
+		res, err = f.retryClient.IngestEvents(context.Background(), axiomDataset, batch)
+	} else {
+		res, err = f.client.IngestEvents(context.Background(), axiomDataset, batch)
+	}
+
 	if err != nil {
-		logger.Error("failed to ingest events", zap.Error(err))
+		if opt == Retry {
+			logger.Error("Failed to ingest events", zap.Error(err))
+		} else {
+			logger.Error("Failed to ingest events (will try again with next event)", zap.Error(err))
+		}
 		// allow this batch to be retried again, put them back
 		f.eventsLock.Lock()
 		defer f.eventsLock.Unlock()
