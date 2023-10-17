@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"os"
 	"strconv"
@@ -35,6 +37,8 @@ var (
 	lambdaMetaInfo                     = map[string]any{}
 	axiomMetaInfo                      = map[string]string{}
 )
+
+var logLineRgx, _ = regexp.Compile(`^([0-9.:TZ-]{20,})\s+([0-9a-f-]{36})\s+(ERROR|INFO|WARN|DEBUG)\s+(.*)`)
 
 func init() {
 	logger, _ = zap.NewProduction()
@@ -85,6 +89,16 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			e["axiom"] = axiomMetaInfo
 			// replace the time field with axiom's _time
 			e["_time"], e["time"] = e["time"], nil
+
+			if e["type"] == "function" {
+				// parse the record
+				matches := logLineRgx.FindStringSubmatch(e["record"].(string))
+				if len(matches) == 5 {
+					e["message"] = matches[4]
+					e["record"] = map[string]any{"requestId": matches[2], "message": e["record"], "timestamp": matches[1]}
+					e["level"] = strings.ToLower(matches[3])
+				}
+			}
 
 			// decide if the handler should notify the extension that the runtime is done
 			if e["type"] == "platform.runtimeDone" && !firstInvocationDone {
