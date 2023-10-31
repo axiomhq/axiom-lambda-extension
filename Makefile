@@ -1,5 +1,4 @@
 GOOS=linux
-GOARCH=arm64
 
 build:
 	mkdir -p bin/extensions
