@@ -38,7 +38,7 @@ var (
 	axiomMetaInfo                      = map[string]string{}
 )
 
-var logLineRgx, _ = regexp.Compile(`^([0-9.:TZ-]{20,})\s+([0-9a-f-]{36})\s+(ERROR|INFO|WARN|DEBUG)\s+(.*)`)
+var logLineRgx, _ = regexp.Compile(`^([0-9.:TZ-]{20,})\s+([0-9a-f-]{36})\s+(ERROR|INFO|WARN|DEBUG|TRACE)\s+(.*)`)
 
 func init() {
 	logger, _ = zap.NewProduction()
