@@ -92,7 +92,7 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 
 			if e["type"] == "function" {
 				e["message"] = e["record"]
-				if recordStr, ok := e["record"].(string); ok {
+				if recordStr, ok := e["record"].(string); ok && len(recordStr) > 0 {
 					recordStr = strings.Trim(recordStr, "\n")
 					// parse the record
 					// first check if the record is a json object, if not parse it as a text log line
