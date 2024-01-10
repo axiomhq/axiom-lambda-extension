@@ -91,12 +91,27 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			e["_time"], e["time"] = e["time"], nil
 
 			if e["type"] == "function" {
-				// parse the record
-				matches := logLineRgx.FindStringSubmatch(e["record"].(string))
-				if len(matches) == 5 {
-					e["message"] = matches[4]
-					e["record"] = map[string]any{"requestId": matches[2], "message": e["record"], "timestamp": matches[1]}
-					e["level"] = strings.ToLower(matches[3])
+				e["message"] = e["record"]
+				if recordStr, ok := e["record"].(string); ok {
+					recordStr = strings.Trim(recordStr, "\n")
+					// parse the record
+					// first check if the record is a json object, if not parse it as a text log line
+					if recordStr[0] == '{' && recordStr[len(recordStr)-1] == '}' {
+						var record map[string]any
+						err = json.Unmarshal([]byte(recordStr), &record)
+						if err != nil {
+							logger.Error("Error unmarshalling record:", zap.Error(err))
+							// do not return, we want to continue processing the event
+						} else {
+							e["record"] = record
+						}
+					} else {
+						matches := logLineRgx.FindStringSubmatch(recordStr)
+						if len(matches) == 5 {
+							e["record"] = map[string]any{"requestId": matches[2], "message": matches[4], "timestamp": matches[1], "level": e["level"]}
+							e["level"] = strings.ToLower(matches[3])
+						}
+					}
 				}
 			}
 
