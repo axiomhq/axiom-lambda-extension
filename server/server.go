@@ -38,7 +38,7 @@ var (
 	axiomMetaInfo                      = map[string]string{}
 )
 
-var logLineRgx, _ = regexp.Compile(`^([0-9.:TZ-]{20,})\s+([0-9a-f-]{36})\s+(ERROR|INFO|WARN|DEBUG|TRACE)\s+(.*)`)
+var logLineRgx, _ = regexp.Compile(`^([0-9.:TZ-]{20,})\s+([0-9a-f-]{36})\s+(ERROR|INFO|WARN|DEBUG|TRACE)\s+(?s:(.*))`)
 
 func init() {
 	logger, _ = zap.NewProduction()
@@ -91,28 +91,7 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			e["_time"], e["time"] = e["time"], nil
 
 			if e["type"] == "function" {
-				e["message"] = e["record"]
-				if recordStr, ok := e["record"].(string); ok && len(recordStr) > 0 {
-					recordStr = strings.Trim(recordStr, "\n")
-					// parse the record
-					// first check if the record is a json object, if not parse it as a text log line
-					if recordStr[0] == '{' && recordStr[len(recordStr)-1] == '}' {
-						var record map[string]any
-						err = json.Unmarshal([]byte(recordStr), &record)
-						if err != nil {
-							logger.Error("Error unmarshalling record:", zap.Error(err))
-							// do not return, we want to continue processing the event
-						} else {
-							e["record"] = record
-						}
-					} else {
-						matches := logLineRgx.FindStringSubmatch(recordStr)
-						if len(matches) == 5 {
-							e["record"] = map[string]any{"requestId": matches[2], "message": matches[4], "timestamp": matches[1], "level": e["level"]}
-							e["level"] = strings.ToLower(matches[3])
-						}
-					}
-				}
+				extractEventMessage(e)
 			}
 
 			// decide if the handler should notify the extension that the runtime is done
@@ -133,6 +112,37 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			firstInvocationDone = true
 			// close the channel since it will not be longer used
 			close(runtimeDone)
+		}
+	}
+}
+
+// extractEventMessage extracts the message from the record field and puts it in the message field
+// it detects if the record is a json string or a text log line that confirms to AWS log line formatting.
+func extractEventMessage(e map[string]any) {
+	e["message"] = e["record"]
+	if recordStr, ok := e["record"].(string); ok && len(recordStr) > 0 {
+		recordStr = strings.Trim(recordStr, "\n")
+		// parse the record
+		// first check if the record is a json object, if not parse it as a text log line
+		if recordStr[0] == '{' && recordStr[len(recordStr)-1] == '}' {
+			var record map[string]any
+			err := json.Unmarshal([]byte(recordStr), &record)
+			if err != nil {
+				logger.Error("Error unmarshalling record:", zap.Error(err))
+				// do not return, we want to continue processing the event
+			} else {
+				if level, ok := record["level"].(string); ok {
+					record["level"] = strings.ToLower(level)
+				}
+				e["level"] = record["level"]
+				e["record"] = record
+			}
+		} else {
+			matches := logLineRgx.FindStringSubmatch(recordStr)
+			if len(matches) == 5 {
+				e["level"] = strings.ToLower(matches[3])
+				e["record"] = map[string]any{"requestId": matches[2], "message": matches[4], "timestamp": matches[1], "level": e["level"]}
+			}
 		}
 	}
 }
