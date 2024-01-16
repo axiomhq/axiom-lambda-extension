@@ -1,7 +1,7 @@
 GOOS=linux
 
 test:
-	go test ./...
+	GOOS=${GOOS} GOARCH=${GOARCH} go test ./...
 
 build:
 	mkdir -p bin/extensions
