@@ -41,9 +41,9 @@ const (
 	extensionIdentifierHeader = "Lambda-Extension-Identifier"
 )
 
-func New(LogsAPI string) *Client {
+func New(telemetryAPI string) *Client {
 	return &Client{
-		baseURL:    fmt.Sprintf("http://%s/2020-01-01/extension", LogsAPI),
+		baseURL:    fmt.Sprintf("http://%s/2020-01-01/extension", telemetryAPI),
 		httpClient: &http.Client{},
 	}
 }

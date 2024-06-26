@@ -1,4 +1,5 @@
 GOOS=linux
+# GOARCH=arm64
 
 test:
 	GOOS=${GOOS} GOARCH=${GOARCH} go test ./...

@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"regexp"
-	"strings"
 
 	"os"
 	"strconv"
@@ -120,29 +119,5 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 // it detects if the record is a json string or a text log line that confirms to AWS log line formatting.
 func extractEventMessage(e map[string]any) {
 	e["message"] = e["record"]
-	if recordStr, ok := e["record"].(string); ok && len(recordStr) > 0 {
-		recordStr = strings.Trim(recordStr, "\n")
-		// parse the record
-		// first check if the record is a json object, if not parse it as a text log line
-		if recordStr[0] == '{' && recordStr[len(recordStr)-1] == '}' {
-			var record map[string]any
-			err := json.Unmarshal([]byte(recordStr), &record)
-			if err != nil {
-				logger.Error("Error unmarshalling record:", zap.Error(err))
-				// do not return, we want to continue processing the event
-			} else {
-				if level, ok := record["level"].(string); ok {
-					record["level"] = strings.ToLower(level)
-				}
-				e["level"] = record["level"]
-				e["record"] = record
-			}
-		} else {
-			matches := logLineRgx.FindStringSubmatch(recordStr)
-			if len(matches) == 5 {
-				e["level"] = strings.ToLower(matches[3])
-				e["record"] = map[string]any{"requestId": matches[2], "message": matches[4], "timestamp": matches[1], "level": e["level"]}
-			}
-		}
-	}
+	delete(e, "record")
 }
