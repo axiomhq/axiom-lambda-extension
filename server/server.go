@@ -87,7 +87,9 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			e["_time"], e["time"] = e["time"], nil
 
 			if e["type"] == "function" {
-				extractEventMessage(e)
+				// extract the message from the record field and puts it in the message field
+				e["message"] = e["record"]
+				delete(e, "record")
 			}
 
 			// decide if the handler should notify the extension that the runtime is done
@@ -110,11 +112,4 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			close(runtimeDone)
 		}
 	}
-}
-
-// extractEventMessage extracts the message from the record field and puts it in the message field
-// it detects if the record is a json string or a text log line that confirms to AWS log line formatting.
-func extractEventMessage(e map[string]any) {
-	e["message"] = e["record"]
-	delete(e, "record")
 }
