@@ -78,8 +78,15 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 		}
 
 		notifyRuntimeDone := false
+		requestId := ""
 
 		for _, e := range events {
+			// capture requestId on each start event
+			if rec, ok := e["record"]; ok && e["type"] == "platform.start" {
+				record := rec.(map[string]any)
+				requestId = record["requestId"].(string)
+			}
+
 			// attach the lambda information to the event
 			e["lambda"] = lambdaMetaInfo
 			e["axiom"] = axiomMetaInfo
@@ -87,9 +94,16 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			e["_time"], e["time"] = e["time"], nil
 
 			if e["type"] == "function" {
-				// extract the message from the record field and puts it in the message field
-				e["message"] = e["record"]
-				delete(e, "record")
+				// extract the message from the record field
+				if rec, ok := e["record"].(map[string]any); ok {
+					e["message"] = rec["message"]
+				} else {
+					e["message"] = e["record"]
+					e["record"] = map[string]string{
+						"requestId": requestId,
+					}
+				}
+
 			}
 
 			// decide if the handler should notify the extension that the runtime is done

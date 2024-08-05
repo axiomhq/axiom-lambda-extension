@@ -1,5 +1,4 @@
 GOOS=linux
-# GOARCH=arm64
 
 test:
 	GOOS=${GOOS} GOARCH=${GOARCH} go test ./...
@@ -12,7 +11,7 @@ package: build
 	cd bin && zip -r extension.zip extensions
 
 publish: package
-	aws lambda publish-layer-version --layer-name axiom-development-lambda-extension-go --region eu-west-1 --zip-file "fileb://bin/extension.zip" --compatible-architectures ${GOARCH} --description 'axiom lambda extension to push lambda logs to https://axiom.co' 
+	aws lambda publish-layer-version --layer-name axiom-development-lambda-extension-go --region eu-west-1 --zip-file "fileb://bin/extension.zip" --compatible-architectures ${GOARCH} --description 'axiom lambda extension to push lambda logs to https://axiom.co'
 
 arch:
 	echo ${GOARCH}
