@@ -103,7 +103,6 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 						"requestId": requestId,
 					}
 				}
-
 			}
 
 			// decide if the handler should notify the extension that the runtime is done
