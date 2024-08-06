@@ -78,13 +78,22 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 		}
 
 		notifyRuntimeDone := false
-		requestId := ""
+		requestID := ""
 
 		for _, e := range events {
-			// capture requestId on each start event
-			if rec, ok := e["record"]; ok && e["type"] == "platform.start" {
-				record := rec.(map[string]any)
-				requestId = record["requestId"].(string)
+			e["message"] = ""
+			// if reocrd key exists, extract the requestId and message from it
+			if rec, ok := e["record"]; ok {
+				if record, ok := rec.(map[string]any); ok {
+					// capture requestId and set it if it exists
+					if reqID, ok := record["requestId"]; ok {
+						requestID = reqID.(string)
+					}
+					if e["type"] == "function" {
+						// set message
+						e["message"] = record["message"].(string)
+					}
+				}
 			}
 
 			// attach the lambda information to the event
@@ -93,15 +102,12 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			// replace the time field with axiom's _time
 			e["_time"], e["time"] = e["time"], nil
 
-			if e["type"] == "function" {
-				// extract the message from the record field
-				if rec, ok := e["record"].(map[string]any); ok {
-					e["message"] = rec["message"]
-				} else {
-					e["message"] = e["record"]
-					e["record"] = map[string]string{
-						"requestId": requestId,
-					}
+			// If we didn't find a message in record field, move the record to message
+			// and assign requestId
+			if e["type"] == "function" && e["message"] == "" {
+				e["message"] = e["record"]
+				e["record"] = map[string]string{
+					"requestId": requestID,
 				}
 			}
 
