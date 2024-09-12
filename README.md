@@ -9,4 +9,4 @@ With the Axiom Lambda extension, you can forget about the extra configuration of
 
 ## Documentation
 
-For more information on how to set up and use the Axiom Lambda Extension, see the [Axiom documentation](https://axiom.co/docs/send-data/lambda).
+For more information on how to set up and use the Axiom Lambda Extension, see the [Axiom documentation](https://axiom.co/docs/send-data/aws-lambda).
