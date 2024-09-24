@@ -14,8 +14,8 @@ import (
 
 	"github.com/axiomhq/axiom-lambda-extension/extension"
 	"github.com/axiomhq/axiom-lambda-extension/flusher"
-	"github.com/axiomhq/axiom-lambda-extension/logsapi"
 	"github.com/axiomhq/axiom-lambda-extension/server"
+	"github.com/axiomhq/axiom-lambda-extension/telemetryapi"
 )
 
 var (
@@ -92,22 +92,22 @@ func Run() error {
 	}
 
 	// LOGS API SUBSCRIPTION
-	logsClient := logsapi.New(runtimeAPI)
+	telemetryClient := telemetryapi.New(runtimeAPI)
 
-	destination := logsapi.Destination{
+	destination := telemetryapi.Destination{
 		Protocol:   "HTTP",
-		URI:        logsapi.URI(fmt.Sprintf("http://sandbox.localdomain:%s/", logsPort)),
+		URI:        telemetryapi.URI(fmt.Sprintf("http://sandbox.localdomain:%s/", logsPort)),
 		HttpMethod: "POST",
 		Encoding:   "JSON",
 	}
 
-	bufferingCfg := logsapi.BufferingCfg{
+	bufferingCfg := telemetryapi.BufferingCfg{
 		MaxItems:  uint32(defaultMaxItems),
 		MaxBytes:  uint32(defaultMaxBytes),
 		TimeoutMS: uint32(defaultTimeoutMS),
 	}
 
-	_, err = logsClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
+	_, err = telemetryClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
 	if err != nil {
 		return err
 	}
