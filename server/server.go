@@ -82,7 +82,7 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 
 		for _, e := range events {
 			e["message"] = ""
-			// if reocrd key exists, extract the requestId and message from it
+			// if record key exists, extract the requestId and message from it
 			if rec, ok := e["record"]; ok {
 				if record, ok := rec.(map[string]any); ok {
 					// capture requestId and set it if it exists
@@ -112,7 +112,7 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			}
 
 			// decide if the handler should notify the extension that the runtime is done
-			if e["type"] == "platform.runtimeDone" && !firstInvocationDone {
+			if e["type"] == "platform.report" && !firstInvocationDone {
 				notifyRuntimeDone = true
 			}
 		}
@@ -123,7 +123,7 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			client.QueueEvents(events)
 		})
 
-		// inform the extension that platform.runtimeDone event has been received
+		// inform the extension that platform.report event has been received
 		if notifyRuntimeDone {
 			runtimeDone <- struct{}{}
 			firstInvocationDone = true
