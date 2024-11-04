@@ -1,4 +1,4 @@
-package logsapi
+package telemetryapi
 
 import (
 	"bytes"
@@ -68,19 +68,19 @@ type SubscribeResponse struct {
 
 const (
 	lambdaAgentIdentifierHeaderKey = "Lambda-Extension-Identifier"
-	SchemaVersion20210318          = "2021-03-18"
-	SchemaVersionLatest            = SchemaVersion20210318
+	SchemaVersion20221213          = "2022-12-13"
+	SchemaVersionLatest            = SchemaVersion20221213
 )
 
-func New(LogsAPI string) *Client {
+func New(runtimeAPI string) *Client {
 	return &Client{
-		baseURL:    fmt.Sprintf("http://%s/2020-08-15", LogsAPI),
+		baseURL:    fmt.Sprintf("http://%s/2022-07-01", runtimeAPI),
 		httpClient: &http.Client{},
 	}
 }
 
 func (lc *Client) Subscribe(ctx context.Context, types []string, bufferingCfg BufferingCfg, destination Destination, extensionID string) (*SubscribeResponse, error) {
-	subscribeEndpoint := lc.baseURL + "/logs"
+	subscribeEndpoint := lc.baseURL + "/telemetry"
 
 	subReq, err := json.Marshal(
 		&SubscribeRequest{
