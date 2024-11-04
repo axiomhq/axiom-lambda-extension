@@ -139,7 +139,7 @@ func Run() error {
 				}
 			})
 
-			// Wait for the first invocation to finish (receive platform.runtimeDone log), then flush
+			// Wait for the first invocation to finish (receive platform.report log), then flush
 			if isFirstInvocation {
 				<-runtimeDone
 				isFirstInvocation = false
