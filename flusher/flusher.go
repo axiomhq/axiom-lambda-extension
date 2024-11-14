@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/axiomhq/axiom-go/axiom"
 	"github.com/axiomhq/axiom-go/axiom/ingest"
@@ -24,11 +23,9 @@ const (
 
 // Axiom Config
 var (
-	axiomToken    = os.Getenv("AXIOM_TOKEN")
-	axiomDataset  = os.Getenv("AXIOM_DATASET")
-	batchSize     = 1000
-	flushInterval = 1 * time.Second
-	logger        *zap.Logger
+	axiomToken   = os.Getenv("AXIOM_TOKEN")
+	axiomDataset = os.Getenv("AXIOM_DATASET")
+	logger       *zap.Logger
 )
 
 func init() {
@@ -36,11 +33,9 @@ func init() {
 }
 
 type Axiom struct {
-	client        *axiom.Client
-	retryClient   *axiom.Client
-	events        []axiom.Event
-	eventsLock    sync.Mutex
-	lastFlushTime time.Time
+	client     *axiom.Client
+	events     []axiom.Event
+	eventsLock sync.Mutex
 }
 
 func New() (*Axiom, error) {
@@ -53,11 +48,6 @@ func New() (*Axiom, error) {
 		axiom.SetUserAgent(fmt.Sprintf("axiom-lambda-extension/%s", version.Get())),
 	}
 
-	retryClient, err := axiom.NewClient(opts...)
-	if err != nil {
-		return nil, err
-	}
-
 	opts = append(opts, axiom.SetNoRetry())
 	client, err := axiom.NewClient(opts...)
 	if err != nil {
@@ -65,19 +55,11 @@ func New() (*Axiom, error) {
 	}
 
 	f := &Axiom{
-		client:      client,
-		retryClient: retryClient,
-		events:      make([]axiom.Event, 0),
+		client: client,
+		events: make([]axiom.Event, 0),
 	}
 
 	return f, nil
-}
-
-func (f *Axiom) ShouldFlush() bool {
-	f.eventsLock.Lock()
-	defer f.eventsLock.Unlock()
-
-	return len(f.events) > batchSize || f.lastFlushTime.IsZero() || time.Since(f.lastFlushTime) > flushInterval
 }
 
 func (f *Axiom) Queue(event axiom.Event) {
@@ -94,32 +76,22 @@ func (f *Axiom) QueueEvents(events []axiom.Event) {
 	f.events = append(f.events, events...)
 }
 
-func (f *Axiom) Flush(opt RetryOpt) {
+func (f *Axiom) Flush() {
 	f.eventsLock.Lock()
 	var batch []axiom.Event
 	// create a copy of the batch, clear the original
 	batch, f.events = f.events, []axiom.Event{}
 	f.eventsLock.Unlock()
 
-	f.lastFlushTime = time.Now()
 	if len(batch) == 0 {
 		return
 	}
 
 	var res *ingest.Status
 	var err error
-	if opt == Retry {
-		res, err = f.retryClient.IngestEvents(context.Background(), axiomDataset, batch)
-	} else {
-		res, err = f.client.IngestEvents(context.Background(), axiomDataset, batch)
-	}
+	res, err = f.client.IngestEvents(context.Background(), axiomDataset, batch)
 
 	if err != nil {
-		if opt == Retry {
-			logger.Error("Failed to ingest events", zap.Error(err))
-		} else {
-			logger.Error("Failed to ingest events (will try again with next event)", zap.Error(err))
-		}
 		// allow this batch to be retried again, put them back
 		f.eventsLock.Lock()
 		defer f.eventsLock.Unlock()

@@ -21,8 +21,7 @@ import (
 )
 
 var (
-	logger              *zap.Logger
-	firstInvocationDone = false
+	logger *zap.Logger
 )
 
 // lambda environment variables
@@ -52,8 +51,8 @@ func init() {
 	}
 }
 
-func New(port string, axiom *flusher.Axiom, runtimeDone chan struct{}) *axiomHttp.Server {
-	s, err := axiomHttp.NewServer(fmt.Sprintf(":%s", port), httpHandler(axiom, runtimeDone))
+func New(port string, axiom *flusher.Axiom) *axiomHttp.Server {
+	s, err := axiomHttp.NewServer(fmt.Sprintf(":%s", port), httpHandler(axiom))
 	if err != nil {
 		logger.Error("Error creating server", zap.Error(err))
 		return nil
@@ -62,7 +61,7 @@ func New(port string, axiom *flusher.Axiom, runtimeDone chan struct{}) *axiomHtt
 	return s
 }
 
-func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc {
+func httpHandler(ax *flusher.Axiom) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -77,7 +76,6 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			return
 		}
 
-		notifyRuntimeDone := false
 		requestID := ""
 
 		for _, e := range events {
@@ -110,11 +108,6 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 					"requestId": requestID,
 				}
 			}
-
-			// decide if the handler should notify the extension that the runtime is done
-			if e["type"] == "platform.report" && !firstInvocationDone {
-				notifyRuntimeDone = true
-			}
 		}
 
 		// queue all the events at once to prevent locking and unlocking the mutex
@@ -122,13 +115,5 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 		flusher.SafelyUseAxiomClient(ax, func(client *flusher.Axiom) {
 			client.QueueEvents(events)
 		})
-
-		// inform the extension that platform.report event has been received
-		if notifyRuntimeDone {
-			runtimeDone <- struct{}{}
-			firstInvocationDone = true
-			// close the channel since it will not be longer used
-			close(runtimeDone)
-		}
 	}
 }

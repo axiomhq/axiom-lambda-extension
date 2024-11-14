@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/peterbourgon/ff/v2/ffcli"
 	"go.uber.org/zap"
@@ -19,11 +20,9 @@ import (
 )
 
 var (
-	runtimeAPI        = os.Getenv("AWS_LAMBDA_RUNTIME_API")
-	crashOnAPIErr     = os.Getenv("PANIC_ON_API_ERR")
-	extensionName     = filepath.Base(os.Args[0])
-	isFirstInvocation = true
-	runtimeDone       = make(chan struct{})
+	runtimeAPI    = os.Getenv("AWS_LAMBDA_RUNTIME_API")
+	crashOnAPIErr = os.Getenv("PANIC_ON_API_ERR")
+	extensionName = filepath.Base(os.Args[0])
 
 	// API Port
 	logsPort = "8080"
@@ -62,6 +61,9 @@ func Run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
+	ticker := time.NewTicker(1 * time.Second) // Flush every second
+	defer ticker.Stop()
+
 	axiom, err := flusher.New()
 	if err != nil {
 		// We don't want to exit with error, so that the extensions doesn't crash and crash the main function with it.
@@ -73,7 +75,7 @@ func Run() error {
 		}
 	}
 
-	httpServer := server.New(logsPort, axiom, runtimeDone)
+	httpServer := server.New(logsPort, axiom)
 	go httpServer.Run(ctx)
 
 	var extensionClient *extension.Client
@@ -115,7 +117,7 @@ func Run() error {
 	// Make sure we flush with retry on exit
 	defer func() {
 		flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
-			client.Flush(flusher.Retry)
+			client.Flush()
 		})
 	}()
 
@@ -124,29 +126,15 @@ func Run() error {
 		case <-ctx.Done():
 			logger.Info("Context done", zap.Error(ctx.Err()))
 			return nil
+		case <-ticker.C:
+			flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
+				axiom.Flush()
+			})
 		default:
 			res, err := extensionClient.NextEvent(ctx, extensionName)
 			if err != nil {
 				logger.Error("Next event failed:", zap.Error(err))
 				return err
-			}
-
-			// On every event received, check if we should flush
-			flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
-				if client.ShouldFlush() {
-					// No retry, we'll try again with the next event
-					client.Flush(flusher.NoRetry)
-				}
-			})
-
-			// Wait for the first invocation to finish (receive platform.report log), then flush
-			if isFirstInvocation {
-				<-runtimeDone
-				isFirstInvocation = false
-				flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
-					// No retry, we'll try again with the next event
-					client.Flush(flusher.NoRetry)
-				})
 			}
 
 			if res.EventType == "SHUTDOWN" {
