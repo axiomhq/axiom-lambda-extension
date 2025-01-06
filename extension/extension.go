@@ -34,6 +34,7 @@ type NextEventResponse struct {
 	RequestID          string    `json:"requestId"`
 	InvokedFunctionArn string    `json:"invokedFunctionArn"`
 	Tracing            Tracing   `json:"tracing"`
+	ShutdownReason     string    `json:"shutdownReason,omitempty"`
 }
 
 const (
