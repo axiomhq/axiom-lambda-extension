@@ -48,10 +48,11 @@ func New() (*Axiom, error) {
 	// not. This is mostly because we are just waiting for the next flush with
 	// the next event most of the time, but want to retry on exit/shutdown.
 
-	opts := []axiom.Option{
+	opts := make([]axiom.Option, 0, 3)
+	opts = append(opts,
 		axiom.SetAPITokenConfig(axiomToken),
 		axiom.SetUserAgent(fmt.Sprintf("axiom-lambda-extension/%s", version.Get())),
-	}
+	)
 
 	retryClient, err := axiom.NewClient(opts...)
 	if err != nil {

@@ -29,9 +29,9 @@ var (
 	logsPort = "8080"
 
 	// Buffering Config
-	defaultMaxItems  = 1000
-	defaultMaxBytes  = 262144
-	defaultTimeoutMS = 1000
+	defaultMaxItems  uint32 = 1000
+	defaultMaxBytes  uint32 = 262144
+	defaultTimeoutMS uint32 = 1000
 
 	developmentMode = false
 	logger          *zap.Logger
@@ -102,9 +102,9 @@ func Run() error {
 	}
 
 	bufferingCfg := telemetryapi.BufferingCfg{
-		MaxItems:  uint32(defaultMaxItems),
-		MaxBytes:  uint32(defaultMaxBytes),
-		TimeoutMS: uint32(defaultTimeoutMS),
+		MaxItems:  defaultMaxItems,
+		MaxBytes:  defaultMaxBytes,
+		TimeoutMS: defaultTimeoutMS,
 	}
 
 	_, err = telemetryClient.Subscribe(ctx, []string{"function", "platform"}, bufferingCfg, destination, extensionClient.ExtensionID)
