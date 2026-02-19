@@ -64,16 +64,15 @@ func (c *Client) Register(ctx context.Context, extensionName string) (*RegisterR
 	}
 	httpReq.Header.Set(extensionNameHeader, extensionName)
 
-	httpRes, err := c.httpClient.Do(httpReq)
+	httpRes, err := c.httpClient.Do(httpReq) //nolint:gosec // internal Lambda API call, not user-controlled
 	if err != nil {
 		return nil, err
 	}
+	defer httpRes.Body.Close()
 
 	if httpRes.StatusCode != 200 {
-		return nil, fmt.Errorf("Register Request Failed with status %s", httpRes.Status)
+		return nil, fmt.Errorf("register request failed with status %s", httpRes.Status)
 	}
-
-	defer httpRes.Body.Close()
 	body, err := io.ReadAll(httpRes.Body)
 	if err != nil {
 		return nil, err
@@ -99,13 +98,13 @@ func (c *Client) NextEvent(ctx context.Context, extensionName string) (*NextEven
 	httpReq.Header.Set(extensionNameHeader, extensionName)
 	httpReq.Header.Set(extensionIdentifierHeader, c.ExtensionID)
 
-	httpRes, err := c.httpClient.Do(httpReq)
+	httpRes, err := c.httpClient.Do(httpReq) //nolint:gosec // internal Lambda API call, not user-controlled
 	if err != nil {
 		return nil, err
 	}
 	defer httpRes.Body.Close()
 	if httpRes.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Next Event Failed with status %s", httpRes.Status)
+		return nil, fmt.Errorf("next event failed with status %s", httpRes.Status)
 	}
 	body, err := io.ReadAll(httpRes.Body)
 	if err != nil {
