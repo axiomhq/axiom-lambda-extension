@@ -3,7 +3,7 @@ module github.com/axiomhq/axiom-lambda-extension
 go 1.24.0
 
 require (
-	github.com/axiomhq/axiom-go v0.28.0
+	github.com/axiomhq/axiom-go v0.29.0
 	github.com/axiomhq/pkg v0.6.0
 	github.com/peterbourgon/ff/v2 v2.0.1
 	go.uber.org/zap v1.27.1

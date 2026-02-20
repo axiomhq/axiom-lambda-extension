@@ -1,6 +1,6 @@
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/axiomhq/axiom-go v0.28.0 h1:SGiBGlxf5Jtrmo1+BrJKbsadQ4TkY13JerWg3N1HD/o=
-github.com/axiomhq/axiom-go v0.28.0/go.mod h1:XOpkjmEmlUMiVNVUumYShxOjRE8nv5jOu24C3KUGBxE=
+github.com/axiomhq/axiom-go v0.29.0 h1:irgj8e3M/fgveGmYmGBY2OxvxzCniOiBwBuTC6Z1OzY=
+github.com/axiomhq/axiom-go v0.29.0/go.mod h1:goeGdtXUN4t/NYp9gLJ5K6m2SGNpMoWyj8kYfUIkGAE=
 github.com/axiomhq/pkg v0.6.0 h1:elslidLCtDB+GPOx+1VzXijf+BT28+HnPUir8vSaEkA=
 github.com/axiomhq/pkg v0.6.0/go.mod h1:0Vu7mQOXdsxpYYyGIm5QfHwafGboyyyoz8FIhSvA30M=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
