@@ -1,7 +1,7 @@
 package version
 
 // manually set constant version
-const version string = "v12"
+const version string = "v13"
 
 // Get returns the Go module version of the axiom-go module.
 func Get() string {
