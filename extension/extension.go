@@ -64,7 +64,7 @@ func (c *Client) Register(ctx context.Context, extensionName string) (*RegisterR
 	}
 	httpReq.Header.Set(extensionNameHeader, extensionName)
 
-	httpRes, err := c.httpClient.Do(httpReq) //nolint:gosec // internal Lambda API call, not user-controlled
+	httpRes, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (c *Client) NextEvent(ctx context.Context, extensionName string) (*NextEven
 	httpReq.Header.Set(extensionNameHeader, extensionName)
 	httpReq.Header.Set(extensionIdentifierHeader, c.ExtensionID)
 
-	httpRes, err := c.httpClient.Do(httpReq) //nolint:gosec // internal Lambda API call, not user-controlled
+	httpRes, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
