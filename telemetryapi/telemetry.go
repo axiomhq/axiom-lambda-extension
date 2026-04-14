@@ -100,7 +100,7 @@ func (lc *Client) Subscribe(ctx context.Context, types []string, bufferingCfg Bu
 	}
 
 	httpReq.Header.Set(lambdaAgentIdentifierHeaderKey, extensionID)
-	httpRes, err := lc.httpClient.Do(httpReq) //nolint:gosec // internal Lambda API call, not user-controlled
+	httpRes, err := lc.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}

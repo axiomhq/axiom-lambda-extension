@@ -87,11 +87,15 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 				if record, ok := rec.(map[string]any); ok {
 					// capture requestId and set it if it exists
 					if reqID, ok := record["requestId"]; ok {
-						requestID = reqID.(string)
+						if id, ok := reqID.(string); ok {
+							requestID = id
+						}
 					}
 					if e["type"] == "function" {
-						// set message
-						e["message"] = record["message"].(string)
+						if msg, ok := record["message"].(string); ok {
+							// set message
+							e["message"] = msg
+						}
 					}
 				}
 			}
