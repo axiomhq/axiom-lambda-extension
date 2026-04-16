@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 
 	"os"
 	"strconv"
+	"strings"
 
 	"go.uber.org/zap"
 
@@ -24,6 +26,8 @@ var (
 	logger              *zap.Logger
 	firstInvocationDone = false
 )
+
+var logLineRgx = regexp.MustCompile(`^([0-9.:TZ-]{20,})\s+([0-9a-f-]{36})\s+(ERROR|INFO|WARN|DEBUG|TRACE)\s+(?s:(.*))`)
 
 // lambda environment variables
 var (
@@ -81,22 +85,9 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 		requestID := ""
 
 		for _, e := range events {
-			e["message"] = ""
-			// if reocrd key exists, extract the requestId and message from it
-			if rec, ok := e["record"]; ok {
-				if record, ok := rec.(map[string]any); ok {
-					// capture requestId and set it if it exists
-					if reqID, ok := record["requestId"]; ok {
-						if id, ok := reqID.(string); ok {
-							requestID = id
-						}
-					}
-					if e["type"] == "function" {
-						if msg, ok := record["message"].(string); ok {
-							// set message
-							e["message"] = msg
-						}
-					}
+			if record, ok := e["record"].(map[string]any); ok {
+				if id, ok := stringField(record, "requestId"); ok {
+					requestID = id
 				}
 			}
 
@@ -106,13 +97,8 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			// replace the time field with axiom's _time
 			e["_time"], e["time"] = e["time"], nil
 
-			// If we didn't find a message in record field, move the record to message
-			// and assign requestId
-			if e["type"] == "function" && e["message"] == "" {
-				e["message"] = e["record"]
-				e["record"] = map[string]string{
-					"requestId": requestID,
-				}
+			if e["type"] == "function" {
+				requestID = extractEventMessage(e, requestID)
 			}
 
 			// decide if the handler should notify the extension that the runtime is done
@@ -135,4 +121,79 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			close(runtimeDone)
 		}
 	}
+}
+
+// extractEventMessage normalizes Lambda function logs while preserving the raw
+// record value in message. String records may contain JSON even when Telemetry
+// API delivers them as text.
+func extractEventMessage(e map[string]any, requestID string) string {
+	recordValue, ok := e["record"]
+	if !ok {
+		e["message"] = ""
+		e["record"] = map[string]string{"requestId": requestID}
+		return requestID
+	}
+
+	e["message"] = recordValue
+
+	switch record := recordValue.(type) {
+	case map[string]any:
+		if id, ok := stringField(record, "requestId"); ok {
+			requestID = id
+		}
+		if msg, ok := stringField(record, "message"); ok {
+			e["message"] = msg
+		}
+		return requestID
+	case string:
+		return extractStringRecord(e, record, requestID)
+	default:
+		e["record"] = map[string]string{"requestId": requestID}
+		return requestID
+	}
+}
+
+func extractStringRecord(e map[string]any, recordStr string, requestID string) string {
+	trimmedRecord := strings.TrimSpace(recordStr)
+	if trimmedRecord == "" {
+		e["record"] = map[string]string{"requestId": requestID}
+		return requestID
+	}
+
+	if strings.HasPrefix(trimmedRecord, "{") && strings.HasSuffix(trimmedRecord, "}") {
+		var record map[string]any
+		if err := json.Unmarshal([]byte(trimmedRecord), &record); err != nil {
+			logger.Error("Error unmarshalling record:", zap.Error(err))
+		} else {
+			if level, ok := stringField(record, "level"); ok {
+				record["level"] = strings.ToLower(level)
+				e["level"] = record["level"]
+			}
+			if id, ok := stringField(record, "requestId"); ok {
+				requestID = id
+			}
+			e["record"] = record
+			return requestID
+		}
+	}
+
+	matches := logLineRgx.FindStringSubmatch(trimmedRecord)
+	if len(matches) == 5 {
+		e["level"] = strings.ToLower(matches[3])
+		e["record"] = map[string]any{
+			"requestId": matches[2],
+			"message":   matches[4],
+			"timestamp": matches[1],
+			"level":     e["level"],
+		}
+		return matches[2]
+	}
+
+	e["record"] = map[string]string{"requestId": requestID}
+	return requestID
+}
+
+func stringField(record map[string]any, key string) (string, bool) {
+	value, ok := record[key].(string)
+	return value, ok
 }
