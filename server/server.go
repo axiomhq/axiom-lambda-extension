@@ -29,6 +29,14 @@ var (
 
 var logLineRgx = regexp.MustCompile(`^([0-9.:TZ-]{20,})\s+([0-9a-f-]{36})\s+(ERROR|INFO|WARN|DEBUG|TRACE)\s+(?s:(.*))`)
 
+// Repeated event field/value literals, extracted to satisfy the goconst linter.
+const (
+	eventTypeFunction = "function"
+	fieldType         = "type"
+	fieldRecord       = "record"
+	fieldRequestID    = "requestId"
+)
+
 // lambda environment variables
 var (
 	AWS_LAMBDA_FUNCTION_NAME           = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
@@ -85,8 +93,8 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 		requestID := ""
 
 		for _, e := range events {
-			if record, ok := e["record"].(map[string]any); ok {
-				if id, ok := stringField(record, "requestId"); ok {
+			if record, ok := e[fieldRecord].(map[string]any); ok {
+				if id, ok := stringField(record, fieldRequestID); ok {
 					requestID = id
 				}
 			}
@@ -97,12 +105,12 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 			// replace the time field with axiom's _time
 			e["_time"], e["time"] = e["time"], nil
 
-			if e["type"] == "function" {
+			if e[fieldType] == eventTypeFunction {
 				requestID = extractEventMessage(e, requestID)
 			}
 
 			// decide if the handler should notify the extension that the runtime is done
-			if e["type"] == "platform.runtimeDone" && !firstInvocationDone {
+			if e[fieldType] == "platform.runtimeDone" && !firstInvocationDone {
 				notifyRuntimeDone = true
 			}
 		}
@@ -127,10 +135,10 @@ func httpHandler(ax *flusher.Axiom, runtimeDone chan struct{}) http.HandlerFunc 
 // record value in message. String records may contain JSON even when Telemetry
 // API delivers them as text.
 func extractEventMessage(e map[string]any, requestID string) string {
-	recordValue, ok := e["record"]
+	recordValue, ok := e[fieldRecord]
 	if !ok {
 		e["message"] = ""
-		e["record"] = map[string]string{"requestId": requestID}
+		e[fieldRecord] = map[string]string{fieldRequestID: requestID}
 		return requestID
 	}
 
@@ -138,7 +146,7 @@ func extractEventMessage(e map[string]any, requestID string) string {
 
 	switch record := recordValue.(type) {
 	case map[string]any:
-		if id, ok := stringField(record, "requestId"); ok {
+		if id, ok := stringField(record, fieldRequestID); ok {
 			requestID = id
 		}
 		if msg, ok := stringField(record, "message"); ok {
@@ -148,7 +156,7 @@ func extractEventMessage(e map[string]any, requestID string) string {
 	case string:
 		return extractStringRecord(e, record, requestID)
 	default:
-		e["record"] = map[string]string{"requestId": requestID}
+		e[fieldRecord] = map[string]string{fieldRequestID: requestID}
 		return requestID
 	}
 }
@@ -156,7 +164,7 @@ func extractEventMessage(e map[string]any, requestID string) string {
 func extractStringRecord(e map[string]any, recordStr string, requestID string) string {
 	trimmedRecord := strings.TrimSpace(recordStr)
 	if trimmedRecord == "" {
-		e["record"] = map[string]string{"requestId": requestID}
+		e[fieldRecord] = map[string]string{fieldRequestID: requestID}
 		return requestID
 	}
 
@@ -169,10 +177,10 @@ func extractStringRecord(e map[string]any, recordStr string, requestID string) s
 				record["level"] = strings.ToLower(level)
 				e["level"] = record["level"]
 			}
-			if id, ok := stringField(record, "requestId"); ok {
+			if id, ok := stringField(record, fieldRequestID); ok {
 				requestID = id
 			}
-			e["record"] = record
+			e[fieldRecord] = record
 			return requestID
 		}
 	}
@@ -180,16 +188,16 @@ func extractStringRecord(e map[string]any, recordStr string, requestID string) s
 	matches := logLineRgx.FindStringSubmatch(trimmedRecord)
 	if len(matches) == 5 {
 		e["level"] = strings.ToLower(matches[3])
-		e["record"] = map[string]any{
-			"requestId": matches[2],
-			"message":   matches[4],
-			"timestamp": matches[1],
-			"level":     e["level"],
+		e[fieldRecord] = map[string]any{
+			fieldRequestID: matches[2],
+			"message":      matches[4],
+			"timestamp":    matches[1],
+			"level":        e["level"],
 		}
 		return matches[2]
 	}
 
-	e["record"] = map[string]string{"requestId": requestID}
+	e[fieldRecord] = map[string]string{fieldRequestID: requestID}
 	return requestID
 }
 
