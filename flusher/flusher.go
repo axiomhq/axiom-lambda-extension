@@ -41,8 +41,10 @@ var (
 	// buffer without bound and the extension leaks memory until it hits the Lambda
 	// memory ceiling (see
 	// https://github.com/axiomhq/axiom-lambda-extension/issues/48). Beyond the cap
-	// the oldest events are dropped. Override with AXIOM_MAX_BUFFERED_EVENTS.
-	maxBufferedEvents = 100_000
+	// the oldest events are dropped. The default is ~10 flush batches, sized so the
+	// buffer stays small relative to the smallest (128MB) memory configurations.
+	// Override with AXIOM_MAX_BUFFERED_EVENTS.
+	maxBufferedEvents = 10_000
 )
 
 func init() {
