@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/peterbourgon/ff/v2/ffcli"
 	"go.uber.org/zap"
@@ -33,12 +34,33 @@ var (
 	defaultMaxBytes  uint32 = 262144
 	defaultTimeoutMS uint32 = 1000
 
+	// flushTimeout bounds how long a single flush may run. It caps how long the
+	// extension can hold the sandbox open after the runtime is done. Without it a
+	// stalled ingest blocks the extension from calling NextEvent, so Lambda keeps
+	// the sandbox alive (and billed) until the function timeout — reported as a
+	// full-window `extensionOverhead` span (issue #48). Override with
+	// AXIOM_FLUSH_TIMEOUT (a Go duration, e.g. "3s").
+	flushTimeout = 5 * time.Second
+
+	// flushSafetyMargin is reserved before the invocation deadline so the extension
+	// always has time to call NextEvent before Lambda times the function out.
+	flushSafetyMargin = 500 * time.Millisecond
+
 	developmentMode = false
 	logger          *zap.Logger
 )
 
 func init() {
 	logger, _ = zap.NewProduction()
+
+	if v := os.Getenv("AXIOM_FLUSH_TIMEOUT"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			flushTimeout = d
+		} else {
+			logger.Warn("invalid AXIOM_FLUSH_TIMEOUT, using default",
+				zap.String("value", v), zap.Duration("default", flushTimeout))
+		}
+	}
 }
 
 func main() {
@@ -112,10 +134,12 @@ func Run() error {
 		return err
 	}
 
-	// Make sure we flush with retry on exit
+	// Make sure we flush with retry on exit, bounded so shutdown can't hang.
 	defer func() {
 		flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
-			client.Flush(flusher.Retry)
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), flushTimeout)
+			defer cancel()
+			client.Flush(shutdownCtx, flusher.Retry)
 		})
 	}()
 
@@ -131,22 +155,28 @@ func Run() error {
 				return err
 			}
 
-			// On every event received, check if we should flush
+			// On every event received, check if we should flush. The flush is
+			// bounded by the invocation deadline so a slow or stalled ingest can
+			// never hold the sandbox open until the function times out (issue #48).
+			flushCtx, cancel := flushContext(ctx, res.DeadlineMs)
 			flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
 				if client.ShouldFlush() {
 					// No retry, we'll try again with the next event
-					client.Flush(flusher.NoRetry)
+					client.Flush(flushCtx, flusher.NoRetry)
 				}
 			})
+			cancel()
 
 			// Wait for the first invocation to finish (receive platform.runtimeDone log), then flush
 			if isFirstInvocation {
 				<-runtimeDone
 				isFirstInvocation = false
+				flushCtx, cancel := flushContext(ctx, res.DeadlineMs)
 				flusher.SafelyUseAxiomClient(axiom, func(client *flusher.Axiom) {
 					// No retry, we'll try again with the next event
-					client.Flush(flusher.NoRetry)
+					client.Flush(flushCtx, flusher.NoRetry)
 				})
+				cancel()
 			}
 
 			if res.EventType == "SHUTDOWN" {
@@ -155,4 +185,21 @@ func Run() error {
 			}
 		}
 	}
+}
+
+// flushContext derives a context for a single flush. The flush is bounded by both
+// flushTimeout and the current invocation's deadline (minus flushSafetyMargin) so
+// that a slow or stalled ingest is abandoned in time for the extension to call
+// NextEvent — preventing the sandbox from being held open (and billed) until the
+// function timeout. deadlineMs is the epoch-millis deadline from the Extensions
+// API NextEvent response; it is 0 when unknown, in which case only flushTimeout
+// applies.
+func flushContext(parent context.Context, deadlineMs int64) (context.Context, context.CancelFunc) {
+	timeout := flushTimeout
+	if deadlineMs > 0 {
+		if remaining := time.Until(time.UnixMilli(deadlineMs)) - flushSafetyMargin; remaining < timeout {
+			timeout = remaining
+		}
+	}
+	return context.WithTimeout(parent, timeout)
 }
